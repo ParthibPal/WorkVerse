@@ -1,0 +1,231 @@
+:root {
+  --primary-bg: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  --highlight-bg: #2c3e50;
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --box-shadow: rgba(0, 0, 0, 0.2);
+  --gold-light: #fcd29f;
+  --gold-dark: #d4a056;
+  --text-light: #f5f5f5;
+  --text-muted: #ccc;
+  --button-hover: linear-gradient(to right, #fbd7a1, #c9953e);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f9f9f9;
+  color: #333;
+}
+
+.landing {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Navbar */
+.navbar {
+  background: #2f3542;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  align-items: center;
+  position: relative;
+}
+
+.logo {
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-links li a {
+  color: white;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.nav-links li a:hover {
+  color: #70a1ff;
+}
+
+/* Burger */
+.burger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 5px;
+}
+
+.burger span {
+  height: 3px;
+  width: 25px;
+  background: white;
+  border-radius: 2px;
+}
+
+/* Hero Section */
+.hero {
+  background: var(--primary-bg);
+  color: var(--text-light);
+  text-align: center;
+  padding: 4rem 1rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.cta {
+  background: white;
+  color: #5352ed;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cta:hover {
+  background: #2f3542;
+  color: white;
+}
+
+/* Banner */
+.banner {
+  text-align: center;
+  background: #d4a056;
+  color: #fff;
+  font-weight: bold;
+  padding: 1rem;
+  animation: slideIn 4s ease-in-out infinite alternate;
+}
+
+@keyframes slideIn {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-10px); }
+}
+
+/* Features Section */
+.features {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  padding: 2rem 1rem;
+  background-color: #ffffff;
+}
+
+.feature-card {
+  background: #f1f2f6;
+  border-radius: 10px;
+  padding: 2rem;
+  margin: 1rem;
+  flex: 1 1 250px;
+  max-width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Highlighted 4th card */
+.highlight-card {
+  background: var(--highlight-bg);
+  color: var(--text-light);
+  box-shadow: 0 4px 12px var(--box-shadow);
+}
+
+/* CTA Section */
+.cta-section {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: #f7f1e3;
+}
+
+.cta-section h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.cta-section p {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.cta-btn {
+  background: #d4a056;
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.cta-btn:hover {
+  background: #2f3542;
+  color: white;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 1rem;
+  background: #2f3542;
+  color: white;
+  margin-top: auto;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .nav-links {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    background-color: #2f3542;
+    padding: 1rem;
+    width: 200px;
+    display: none;
+    border-radius: 8px 0 0 8px;
+    box-shadow: -2px 2px 10px rgba(0,0,0,0.2);
+  }
+
+  .nav-links.open {
+    display: flex;
+    z-index: 3;
+  }
+
+  .burger {
+    display: flex;
+  }
+
+  .features {
+    flex-direction: column;
+    align-items: center;
+  }
+}

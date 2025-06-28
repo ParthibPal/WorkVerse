@@ -1,0 +1,126 @@
+/* Root Color Variables */
+:root {
+    --primary-bg: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --box-shadow: rgba(0, 0, 0, 0.3);
+    --gold-light: #fcd29f;
+    --gold-dark: #d4a056;
+    --text-light: #f5f5f5;
+    --text-muted: #ccc;
+    --button-hover: linear-gradient(to right, #fbd7a1, #c9953e);
+  }
+  
+  /* Page background */
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--primary-bg);
+  }
+  
+  /* Container */
+  .auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100vw;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+  
+  /* Glass UI Card */
+  .auth-box {
+    background: var(--glass-bg);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px var(--box-shadow);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--glass-border);
+    width: 90%;
+    max-width: 400px;
+    color: var(--text-light);
+    text-align: center;
+  }
+  
+  /* Heading */
+  .auth-box h2 {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+    color: var(--gold-light);
+  }
+  
+  /* Form styles */
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .auth-form input,
+  .auth-form select {
+    padding: 0.8rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-light);
+    outline: none;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  
+  .auth-form input::placeholder {
+    color: var(--text-muted);
+  }
+  
+  .auth-form select {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  .auth-form select option {
+    color: #1e1e1e;
+    background-color: #f9f9f9;
+  }
+  
+  .auth-form input:focus,
+  .auth-form select:focus {
+    background: rgba(255, 255, 255, 0.18);
+  }
+  
+  /* Button */
+  .auth-form button {
+    background: linear-gradient(to right, var(--gold-light), var(--gold-dark));
+    border: none;
+    color: #1e1e1e;
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 0.8rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.3s ease, background 0.3s ease;
+  }
+  
+  .auth-form button:hover {
+    transform: scale(1.05);
+    background: var(--button-hover);
+  }
+  
+  /* Toggle link */
+  .auth-toggle {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+  
+  .auth-toggle span {
+    color: var(--gold-light);
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 6px;
+    text-decoration: underline;
+  }
+  

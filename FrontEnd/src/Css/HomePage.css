@@ -1,0 +1,917 @@
+/* Homepage-specific CSS - Scoped to .homepage class */
+:root {
+    --primary-bg: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    --highlight-bg: #2c3e50;
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --box-shadow: rgba(0, 0, 0, 0.2);
+    --gold-light: #fcd29f;
+    --gold-dark: #d4a056;
+    --text-light: #f5f5f5;
+    --text-muted: #ccc;
+    --button-hover: linear-gradient(to right, #fbd7a1, #c9953e);
+    --card-bg: rgba(255, 255, 255, 0.1);
+    --card-border: rgba(255, 255, 255, 0.15);
+    --success-color: #4ade80;
+  }
+  
+  /* Homepage Container */
+  .homepage {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--primary-bg);
+    color: var(--text-light);
+    line-height: 1.6;
+    min-height: 1vh;
+    overflow-x: hidden;
+  }
+  
+  .homepage * {
+    box-sizing: border-box;
+  }
+  
+
+  
+  /* Hero Section */
+  .homepage .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 6rem 2rem 2rem;
+    overflow: hidden;
+  }
+  
+  .homepage .hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+  }
+  
+  .homepage .floating-elements {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .homepage .floating-element {
+    position: absolute;
+    font-size: 2rem;
+    opacity: 0.1;
+    animation: homepage-float 6s ease-in-out infinite;
+  }
+  
+  .homepage .floating-element:nth-child(2) {
+    animation-delay: -2s;
+  }
+  
+  .homepage .floating-element:nth-child(3) {
+    animation-delay: -4s;
+  }
+  
+  @keyframes homepage-float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-20px) rotate(5deg); }
+    66% { transform: translateY(10px) rotate(-5deg); }
+  }
+  
+  .homepage .hero-content {
+    max-width: 1200px;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .homepage .hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--text-light), var(--gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .homepage .highlight {
+    color: var(--gold-light);
+    -webkit-text-fill-color: var(--gold-light);
+  }
+  
+  .homepage .hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .homepage .search-container {
+    margin-bottom: 2rem;
+  }
+  
+  .homepage .search-box {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    box-shadow: 0 20px 40px var(--box-shadow);
+  }
+  
+  .homepage .search-field {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .homepage .search-field:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 24px;
+    background: var(--glass-border);
+  }
+  
+  .homepage .search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted);
+    z-index: 1;
+  }
+  
+  .homepage .search-field input,
+  .homepage .search-field select {
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 1rem 1rem 1rem 3rem;
+    color: var(--text-light);
+    font-size: 1rem;
+    border-radius: 8px;
+    outline: none;
+  }
+  
+  .homepage .search-field input::placeholder {
+    color: var(--text-muted);
+  }
+  
+  .homepage .search-field select {
+    appearance: none;
+    cursor: pointer;
+  }
+  
+  .homepage .select-arrow {
+    position: absolute;
+    right: 1rem;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+  
+  .homepage .search-btn {
+    background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+    border: none;
+    color: var(--highlight-bg);
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+  
+  .homepage .search-btn:hover {
+    background: var(--button-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(252, 210, 159, 0.3);
+  }
+  
+  .homepage .popular-searches {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    color: var(--text-muted);
+  }
+  
+  .homepage .popular-tag {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-light);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .homepage .popular-tag:hover {
+    background: var(--gold-light);
+    color: var(--highlight-bg);
+    border-color: var(--gold-light);
+  }
+  
+  /* Stats Section */
+  .homepage .stats {
+    padding: 4rem 2rem;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  .homepage .stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    text-align: center;
+  }
+  
+  .homepage .stat-item {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    padding: 2rem;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+  }
+  
+  .homepage .stat-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px var(--box-shadow);
+  }
+  
+  .homepage .stat-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--gold-light);
+    margin-bottom: 0.5rem;
+  }
+  
+  .homepage .stat-label {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+  }
+  
+  /* Section Styles */
+  .homepage .section-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+  
+  .homepage .section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .homepage .section-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-light);
+  }
+  
+  .homepage .section-header p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  /* Featured Jobs */
+  .homepage .featured-jobs {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  .homepage .jobs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+  
+  .homepage .job-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .homepage .job-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold-light), var(--gold-dark));
+  }
+  
+  .homepage .job-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px var(--box-shadow);
+    border-color: var(--gold-light);
+  }
+  
+  .homepage .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+  
+  .homepage .company-logo {
+    width: 48px;
+    height: 48px;
+    background: var(--highlight-bg);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  
+  .homepage .job-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+  
+  .homepage .job-type-badge {
+    background: var(--success-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .homepage .job-posted {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  
+  .homepage .job-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-light);
+  }
+  
+  .homepage .job-company,
+  .homepage .job-location,
+  .homepage .job-salary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .homepage .job-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  
+  .homepage .skill-tag {
+    background: var(--highlight-bg);
+    color: var(--text-light);
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .homepage .job-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+  }
+  
+  .homepage .applicants {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+  
+  .homepage .apply-btn {
+    background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+    border: none;
+    color: var(--highlight-bg);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .homepage .apply-btn:hover {
+    background: var(--button-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(252, 210, 159, 0.3);
+  }
+  
+  .homepage .section-footer {
+    text-align: center;
+  }
+  
+  .homepage .btn-outline {
+    background: transparent;
+    border: 2px solid var(--gold-light);
+    color: var(--gold-light);
+    padding: 0.75rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+  }
+  
+  .homepage .btn-outline:hover {
+    background: var(--gold-light);
+    color: var(--highlight-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(252, 210, 159, 0.3);
+  }
+  
+  /* Categories Section */
+  .homepage .categories {
+    padding: 4rem 0;
+  }
+  
+  .homepage .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+  }
+  
+  .homepage .category-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .homepage .category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent, rgba(252, 210, 159, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .homepage .category-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 25px 50px var(--box-shadow);
+    border-color: var(--gold-light);
+  }
+  
+  .homepage .category-card:hover::before {
+    opacity: 1;
+  }
+  
+  .homepage .category-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .homepage .category-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+  }
+  
+  .homepage .category-jobs {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+  }
+  
+  .homepage .category-btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-light);
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 auto;
+    transition: all 0.3s ease;
+  }
+  
+  .homepage .category-btn:hover {
+    background: var(--gold-light);
+    color: var(--highlight-bg);
+    border-color: var(--gold-light);
+    transform: translateX(5px);
+  }
+  
+  /* Testimonials Section */
+  .homepage .testimonials {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4rem 0;
+  }
+  
+  .homepage .testimonials-slider {
+    position: relative;
+    height: 200px;
+    margin-bottom: 2rem;
+  }
+  
+  .homepage .testimonial-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    transform: translateX(100px);
+    transition: all 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .homepage .testimonial-card.active {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .homepage .testimonial-content {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    max-width: 600px;
+    position: relative;
+  }
+  
+  .homepage .testimonial-content::before {
+    content: '"';
+    position: absolute;
+    top: -20px;
+    left: 2rem;
+    font-size: 4rem;
+    color: var(--gold-light);
+    opacity: 0.3;
+  }
+  
+  .homepage .stars {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    color: var(--gold-light);
+  }
+  
+  .homepage .testimonial-text {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  
+  .homepage .testimonial-author {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .homepage .author-info {
+    text-align: center;
+  }
+  
+  .homepage .author-name {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+  }
+  
+  .homepage .author-role {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  
+  .homepage .slider-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  .homepage .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    background: var(--glass-border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .homepage .dot.active {
+    background: var(--gold-light);
+    transform: scale(1.2);
+  }
+  
+  /* CTA Section */
+  .homepage .cta {
+    background: var(--highlight-bg);
+    padding: 4rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .homepage .cta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(252, 210, 159, 0.1), rgba(212, 160, 86, 0.1));
+    z-index: 1;
+  }
+  
+  .homepage .cta-content {
+    position: relative;
+    z-index: 2;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .homepage .cta h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-light);
+  }
+  
+  .homepage .cta p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+  }
+  
+  .homepage .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .homepage .btn-primary-large {
+    background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+    border: none;
+    color: var(--highlight-bg);
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+  }
+  
+  .homepage .btn-primary-large:hover {
+    background: var(--button-hover);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(252, 210, 159, 0.4);
+  }
+  
+  .homepage .btn-outline-large {
+    background: transparent;
+    border: 2px solid var(--gold-light);
+    color: var(--gold-light);
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+  }
+  
+  .homepage .btn-outline-large:hover {
+    background: var(--gold-light);
+    color: var(--highlight-bg);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(252, 210, 159, 0.4);
+  }
+  
+  /* Footer */
+  .homepage .footer {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 3rem 0 1rem;
+  }
+  
+  .homepage .footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+  
+  .homepage .footer-section h4 {
+    color: var(--gold-light);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  
+  .homepage .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold-light);
+    margin-bottom: 1rem;
+  }
+  
+  .homepage .footer-section p {
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  
+  .homepage .footer-section ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .homepage .footer-section ul li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .homepage .footer-section ul li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .homepage .footer-section ul li a:hover {
+    color: var(--gold-light);
+  }
+  
+  .homepage .footer-bottom {
+    border-top: 1px solid var(--glass-border);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .homepage .nav-container {
+      padding: 0 1rem; 
+    }
+    .homepage{
+        margin-top: 2rem;
+    }
+    .homepage .nav-links {
+      display: none;
+    }
+    
+    .homepage .hero-title {
+      font-size: 2.5rem;
+    }
+    
+    .homepage .hero-subtitle {
+      font-size: 1.1rem;
+    }
+    
+    .homepage .search-box {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .homepage .search-field:not(:last-child)::after {
+      display: none;
+    }
+    
+    .homepage .popular-searches {
+      font-size: 0.875rem;
+    }
+    
+    .homepage .stats-container {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+    
+    .homepage .stat-number {
+      font-size: 2rem;
+    }
+    
+    .homepage .section-header h2 {
+      font-size: 2rem;
+    }
+    
+    .homepage .jobs-grid,
+    .homepage .categories-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .homepage .cta h2 {
+      font-size: 2rem;
+    }
+    
+    .homepage .cta-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .homepage .btn-primary-large,
+    .homepage .btn-outline-large {
+      width: 100%;
+      max-width: 300px;
+      justify-content: center;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .homepage .hero {
+      padding: 4rem 1rem 2rem;
+    }
+    
+    .homepage .hero-title {
+      font-size: 2rem;
+    }
+    
+    .homepage .section-container {
+      padding: 2rem 1rem;
+    }
+    
+    .homepage .stats {
+      padding: 2rem 1rem;
+    }
+    
+    .homepage .stats-container {
+      grid-template-columns: 1fr;
+    }
+    
+    .homepage .search-box {
+      margin: 0 1rem;
+    }
+    
+    .homepage .testimonial-content {
+      margin: 0 1rem;
+      padding: 1.5rem;
+    }
+  }
