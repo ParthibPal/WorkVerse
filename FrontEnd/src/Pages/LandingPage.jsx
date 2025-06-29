@@ -66,7 +66,14 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer className="footer">
-        <p>© 2025 WorkVerse. All rights reserved.</p>
+        <div className="footer-content">
+          <p>© 2025 WorkVerse. All rights reserved.</p>
+          <div className="footer-links">
+            <a onClick={() => navigate('/aboutus')}>About</a>
+            <a onClick={() => navigate('/contactus')}>Contact</a>
+            <a onClick={() => navigate('/admin-login')} className="admin-link">Admin</a>
+          </div>
+        </div>
       </footer>
     </div>
   );

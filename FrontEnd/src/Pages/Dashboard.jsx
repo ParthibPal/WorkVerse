@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Eye, FileText, Download, MoreVertical, Shield, UserCheck } from 'lucide-react';
+import { Users, Briefcase, Eye, FileText, Download, MoreVertical, Shield, UserCheck, LogOut } from 'lucide-react';
 import {useNavigate} from "react-router-dom";
+import { useAuth } from '../context/AuthContext';
+
 const Dashboard = () => {
-  const [userRole, setUserRole] = useState('admin'); // admin or recruiter
+  const { user, getUserType, logout } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
+  
+  // Get user role from context
+  const userRole = getUserType();
+  const isAdmin = user?.isAdmin || false;
+  
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -14,6 +21,12 @@ const Dashboard = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   // Mock data
   const adminStats = [
@@ -200,45 +213,64 @@ const Dashboard = () => {
                       margin: '0 0 0.5rem 0', 
                       fontSize: '1rem', 
                       fontWeight: '600',
-                      lineHeight: '1.4',
                       color: '#f5f5f5'
                     }}>
                       {job.title}
                     </h4>
                     <p style={{ 
-                      margin: '0', 
+                      margin: '0 0 0.25rem 0', 
                       fontSize: '0.875rem', 
-                      color: '#ccc',
-                      lineHeight: '1.4'
+                      color: '#ccc'
                     }}>
-                      {job.company} • by {job.recruiter}
+                      {job.company} • {job.recruiter}
                     </p>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '1rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#fcd29f',
+                        background: 'rgba(252, 210, 159, 0.15)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {job.applications} applications
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: job.status === 'Active' ? '#4ade80' : '#fcd29f',
+                        background: job.status === 'Active' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(252, 210, 159, 0.15)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {job.status}
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ 
-                    display: 'flex',
-                    flexDirection: isMobile ? 'row' : 'column',
-                    alignItems: isMobile ? 'center' : 'flex-end',
-                    gap: '0.5rem',
-                    flexShrink: 0
+                  <button style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ccc',
+                    cursor: 'pointer',
+                    padding: '0.25rem',
+                    borderRadius: '4px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#fcd29f';
+                    e.currentTarget.style.background = 'rgba(252, 210, 159, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#ccc';
+                    e.currentTarget.style.background = 'none';
                   }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: job.status === 'Active' ? '#4ade80' : '#ccc',
-                      background: job.status === 'Active' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255, 255, 255, 0.1)',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '8px',
-                      fontWeight: '600'
-                    }}>
-                      {job.status}
-                    </span>
-                    <span style={{ 
-                      fontSize: '0.875rem', 
-                      color: '#fcd29f',
-                      fontWeight: '600'
-                    }}>
-                      {job.applications} apps
-                    </span>
-                  </div>
+                    <MoreVertical size={16} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -294,7 +326,7 @@ const Dashboard = () => {
                 }}>
                   <div style={{ flex: 1, minWidth: '0' }}>
                     <h4 style={{ 
-                      margin: '0 0 0.25rem 0', 
+                      margin: '0 0 0.5rem 0', 
                       fontSize: '1rem', 
                       fontWeight: '600',
                       color: '#f5f5f5'
@@ -304,31 +336,67 @@ const Dashboard = () => {
                     <p style={{ 
                       margin: '0 0 0.25rem 0', 
                       fontSize: '0.875rem', 
-                      color: '#ccc',
-                      wordBreak: 'break-word'
+                      color: '#ccc'
                     }}>
                       {user.email}
                     </p>
-                    <p style={{ 
-                      margin: '0', 
-                      fontSize: '0.875rem', 
-                      color: '#fcd29f',
-                      fontWeight: '500'
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '1rem',
+                      flexWrap: 'wrap'
                     }}>
-                      {user.role} {user.company !== '-' && `• ${user.company}`}
-                    </p>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#fcd29f',
+                        background: 'rgba(252, 210, 159, 0.15)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {user.role}
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#ccc',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {user.company}
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: user.status === 'Active' ? '#4ade80' : '#f44336',
+                        background: user.status === 'Active' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(244, 67, 54, 0.15)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {user.status}
+                      </span>
+                    </div>
                   </div>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    color: '#4ade80',
-                    background: 'rgba(74, 222, 128, 0.15)',
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    flexShrink: 0
+                  <button style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ccc',
+                    cursor: 'pointer',
+                    padding: '0.25rem',
+                    borderRadius: '4px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#fcd29f';
+                    e.currentTarget.style.background = 'rgba(252, 210, 159, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#ccc';
+                    e.currentTarget.style.background = 'none';
                   }}>
-                    {user.status}
-                  </span>
+                    <MoreVertical size={16} />
+                  </button>
                 </div>
               </div>
             ))}
@@ -352,34 +420,41 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Candidates Section */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.15)',
-        borderRadius: '16px',
-        padding: '1.5rem',
-        width: '100%',
-        boxSizing: 'border-box'
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+        gap: '1.5rem',
+        width: '100%'
       }}>
-        <h3 style={{ 
-          margin: '0 0 1.5rem', 
-          fontSize: '1.25rem', 
-          fontWeight: '700',
-          color: '#f5f5f5'
+        {/* My Job Posts */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          width: '100%',
+          boxSizing: 'border-box'
         }}>
-          Registered Candidates
-        </h3>
-        
-        {/* Mobile Card View */}
-        {isMobile ? (
-          <div>
-            {candidates.map((candidate) => (
-              <div key={candidate.id} style={{
+          <h3 style={{ 
+            margin: '0 0 1.5rem', 
+            fontSize: '1.25rem', 
+            fontWeight: '700',
+            color: '#f5f5f5'
+          }}>
+            My Job Posts
+          </h3>
+          <div style={{ 
+            maxHeight: '400px', 
+            overflowY: 'auto',
+            paddingRight: '0.5rem'
+          }}>
+            {jobPosts.slice(0, 3).map((job) => (
+              <div key={job.id} style={{
                 background: '#2c3e50',
                 borderRadius: '12px',
-                padding: '1.25rem',
-                marginBottom: '1rem',
+                padding: '1rem',
+                marginBottom: '0.75rem',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 transition: 'all 0.3s ease'
               }}
@@ -395,242 +470,364 @@ const Dashboard = () => {
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'flex-start',
-                  marginBottom: '1rem'
+                  gap: '1rem',
+                  flexWrap: isMobile ? 'wrap' : 'nowrap'
                 }}>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: '0' }}>
                     <h4 style={{ 
-                      margin: '0 0 0.25rem 0', 
-                      fontSize: '1.1rem', 
+                      margin: '0 0 0.5rem 0', 
+                      fontSize: '1rem', 
                       fontWeight: '600',
                       color: '#f5f5f5'
                     }}>
-                      {candidate.name}
+                      {job.title}
                     </h4>
                     <p style={{ 
-                      margin: '0', 
-                      fontSize: '0.9rem', 
+                      margin: '0 0 0.25rem 0', 
+                      fontSize: '0.875rem', 
                       color: '#ccc'
                     }}>
-                      {candidate.role} • {candidate.experience}
+                      {job.company}
                     </p>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '1rem',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#fcd29f',
+                        background: 'rgba(252, 210, 159, 0.15)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {job.applications} applications
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: job.status === 'Active' ? '#4ade80' : '#fcd29f',
+                        background: job.status === 'Active' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(252, 210, 159, 0.15)',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {job.status}
+                      </span>
+                    </div>
                   </div>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    color: candidate.status === 'Available' ? '#4ade80' : 
-                           candidate.status === 'Hired' ? '#fcd29f' : '#60a5fa',
-                    background: candidate.status === 'Available' ? 'rgba(74, 222, 128, 0.15)' : 
-                               candidate.status === 'Hired' ? 'rgba(252, 210, 159, 0.15)' : 'rgba(96, 165, 250, 0.15)',
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '8px',
-                    fontWeight: '600'
-                  }}>
-                    {candidate.status}
-                  </span>
-                </div>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  gap: '1rem'
-                }}>
-                  <p style={{ 
-                    margin: 0, 
-                    fontSize: '0.875rem', 
-                    color: '#fcd29f',
-                    flex: 1,
-                    fontWeight: '500'
-                  }}>
-                    Skills: {candidate.skills}
-                  </p>
                   <button style={{
-                    background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
+                    background: 'none',
                     border: 'none',
-                    borderRadius: '10px',
-                    padding: '0.6rem 1rem',
-                    color: '#000',
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
+                    color: '#ccc',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    flexShrink: 0,
+                    padding: '0.25rem',
+                    borderRadius: '4px',
                     transition: 'all 0.3s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                    e.currentTarget.style.color = '#fcd29f';
+                    e.currentTarget.style.background = 'rgba(252, 210, 159, 0.1)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.color = '#ccc';
+                    e.currentTarget.style.background = 'none';
                   }}>
-                    <Download size={14} />
-                    CV
+                    <MoreVertical size={16} />
                   </button>
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          /* Desktop Table View */
-          <div style={{ 
-            overflowX: 'auto'
+        </div>
+
+        {/* Candidates */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 1.5rem', 
+            fontSize: '1.25rem', 
+            fontWeight: '700',
+            color: '#f5f5f5'
           }}>
-            <table style={{ 
-              width: '100%', 
-              borderCollapse: 'collapse', 
-              minWidth: '700px'
+            Top Candidates
+          </h3>
+          {isMobile ? (
+            <div style={{ 
+              maxHeight: '400px', 
+              overflowY: 'auto',
+              paddingRight: '0.5rem'
             }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid rgba(255, 255, 255, 0.2)' }}>
-                  <th style={{ 
-                    padding: '1rem', 
-                    textAlign: 'left', 
-                    fontSize: '0.875rem', 
-                    color: '#ccc',
-                    fontWeight: '600'
+              {candidates.map((candidate) => (
+                <div key={candidate.id} style={{
+                  background: '#2c3e50',
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  marginBottom: '0.75rem',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(44, 62, 80, 0.8)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#2c3e50';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
                   }}>
-                    Name
-                  </th>
-                  <th style={{ 
-                    padding: '1rem', 
-                    textAlign: 'left', 
-                    fontSize: '0.875rem', 
-                    color: '#ccc',
-                    fontWeight: '600'
-                  }}>
-                    Role
-                  </th>
-                  <th style={{ 
-                    padding: '1rem', 
-                    textAlign: 'left', 
-                    fontSize: '0.875rem', 
-                    color: '#ccc',
-                    fontWeight: '600'
-                  }}>
-                    Experience
-                  </th>
-                  <th style={{ 
-                    padding: '1rem', 
-                    textAlign: 'left', 
-                    fontSize: '0.875rem', 
-                    color: '#ccc',
-                    fontWeight: '600'
-                  }}>
-                    Skills
-                  </th>
-                  <th style={{ 
-                    padding: '1rem', 
-                    textAlign: 'left', 
-                    fontSize: '0.875rem', 
-                    color: '#ccc',
-                    fontWeight: '600'
-                  }}>
-                    Status
-                  </th>
-                  <th style={{ 
-                    padding: '1rem', 
-                    textAlign: 'center', 
-                    fontSize: '0.875rem', 
-                    color: '#ccc',
-                    fontWeight: '600'
-                  }}>
-                    CV
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidates.map((candidate) => (
-                  <tr key={candidate.id} style={{
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#2c3e50';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                  }}>
-                    <td style={{ padding: '1rem' }}>
-                      <div style={{ 
-                        fontWeight: '600', 
-                        fontSize: '0.9rem',
+                    <div style={{ flex: 1, minWidth: '0' }}>
+                      <h4 style={{ 
+                        margin: '0 0 0.5rem 0', 
+                        fontSize: '1rem', 
+                        fontWeight: '600',
                         color: '#f5f5f5'
                       }}>
                         {candidate.name}
+                      </h4>
+                      <p style={{ 
+                        margin: '0 0 0.25rem 0', 
+                        fontSize: '0.875rem', 
+                        color: '#ccc'
+                      }}>
+                        {candidate.role} • {candidate.experience}
+                      </p>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '1rem',
+                        flexWrap: 'wrap',
+                        marginTop: '0.5rem'
+                      }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#fcd29f',
+                          background: 'rgba(252, 210, 159, 0.15)',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '6px',
+                          fontWeight: '500'
+                        }}>
+                          {candidate.skills}
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: candidate.status === 'Available' ? '#4ade80' : 
+                                 candidate.status === 'Hired' ? '#fcd29f' : '#60a5fa',
+                          background: candidate.status === 'Available' ? 'rgba(74, 222, 128, 0.15)' : 
+                                     candidate.status === 'Hired' ? 'rgba(252, 210, 159, 0.15)' : 'rgba(96, 165, 250, 0.15)',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '6px',
+                          fontWeight: '500'
+                        }}>
+                          {candidate.status}
+                        </span>
                       </div>
-                    </td>
-                    <td style={{ 
-                      padding: '1rem', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc'
+                    </div>
+                    <button style={{
+                      background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
+                      border: 'none',
+                      borderRadius: '10px',
+                      padding: '0.5rem 1rem',
+                      color: '#000',
+                      fontSize: '0.8rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}>
-                      {candidate.role}
-                    </td>
-                    <td style={{ 
+                      <Download size={14} />
+                      CV
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ 
+              maxHeight: '400px', 
+              overflowY: 'auto',
+              paddingRight: '0.5rem'
+            }}>
+              <table style={{ 
+                width: '100%', 
+                borderCollapse: 'collapse',
+                fontSize: '0.875rem'
+              }}>
+                <thead>
+                  <tr style={{
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}>
+                    <th style={{ 
                       padding: '1rem', 
+                      textAlign: 'left', 
                       fontSize: '0.875rem', 
-                      color: '#ccc'
+                      color: '#ccc',
+                      fontWeight: '600'
                     }}>
-                      {candidate.experience}
-                    </td>
-                    <td style={{ 
+                      Name
+                    </th>
+                    <th style={{ 
                       padding: '1rem', 
+                      textAlign: 'left', 
                       fontSize: '0.875rem', 
-                      color: '#fcd29f',
-                      fontWeight: '500'
+                      color: '#ccc',
+                      fontWeight: '600'
                     }}>
-                      {candidate.skills}
-                    </td>
-                    <td style={{ padding: '1rem' }}>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: candidate.status === 'Available' ? '#4ade80' : 
-                               candidate.status === 'Hired' ? '#fcd29f' : '#60a5fa',
-                        background: candidate.status === 'Available' ? 'rgba(74, 222, 128, 0.15)' : 
-                                   candidate.status === 'Hired' ? 'rgba(252, 210, 159, 0.15)' : 'rgba(96, 165, 250, 0.15)',
-                        padding: '0.4rem 0.8rem',
-                        borderRadius: '8px',
-                        fontWeight: '600'
-                      }}>
-                        {candidate.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '1rem', textAlign: 'center' }}>
-                      <button style={{
-                        background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
-                        border: 'none',
-                        borderRadius: '10px',
-                        padding: '0.5rem 1rem',
-                        color: '#000',
-                        fontSize: '0.8rem',
-                        fontWeight: '700',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'scale(1.05)';
-                        e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }}>
-                        <Download size={14} />
-                        CV
-                      </button>
-                    </td>
+                      Role
+                    </th>
+                    <th style={{ 
+                      padding: '1rem', 
+                      textAlign: 'left', 
+                      fontSize: '0.875rem', 
+                      color: '#ccc',
+                      fontWeight: '600'
+                    }}>
+                      Experience
+                    </th>
+                    <th style={{ 
+                      padding: '1rem', 
+                      textAlign: 'left', 
+                      fontSize: '0.875rem', 
+                      color: '#ccc',
+                      fontWeight: '600'
+                    }}>
+                      Skills
+                    </th>
+                    <th style={{ 
+                      padding: '1rem', 
+                      textAlign: 'left', 
+                      fontSize: '0.875rem', 
+                      color: '#ccc',
+                      fontWeight: '600'
+                    }}>
+                      Status
+                    </th>
+                    <th style={{ 
+                      padding: '1rem', 
+                      textAlign: 'center', 
+                      fontSize: '0.875rem', 
+                      color: '#ccc',
+                      fontWeight: '600'
+                    }}>
+                      CV
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {candidates.map((candidate) => (
+                    <tr key={candidate.id} style={{
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#2c3e50';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}>
+                      <td style={{ padding: '1rem' }}>
+                        <div style={{ 
+                          fontWeight: '600', 
+                          fontSize: '0.9rem',
+                          color: '#f5f5f5'
+                        }}>
+                          {candidate.name}
+                        </div>
+                      </td>
+                      <td style={{ 
+                        padding: '1rem', 
+                        fontSize: '0.875rem', 
+                        color: '#ccc'
+                      }}>
+                        {candidate.role}
+                      </td>
+                      <td style={{ 
+                        padding: '1rem', 
+                        fontSize: '0.875rem', 
+                        color: '#ccc'
+                      }}>
+                        {candidate.experience}
+                      </td>
+                      <td style={{ 
+                        padding: '1rem', 
+                        fontSize: '0.875rem', 
+                        color: '#fcd29f',
+                        fontWeight: '500'
+                      }}>
+                        {candidate.skills}
+                      </td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: candidate.status === 'Available' ? '#4ade80' : 
+                                 candidate.status === 'Hired' ? '#fcd29f' : '#60a5fa',
+                          background: candidate.status === 'Available' ? 'rgba(74, 222, 128, 0.15)' : 
+                                     candidate.status === 'Hired' ? 'rgba(252, 210, 159, 0.15)' : 'rgba(96, 165, 250, 0.15)',
+                          padding: '0.4rem 0.8rem',
+                          borderRadius: '8px',
+                          fontWeight: '600'
+                        }}>
+                          {candidate.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '1rem', textAlign: 'center' }}>
+                        <button style={{
+                          background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
+                          border: 'none',
+                          borderRadius: '10px',
+                          padding: '0.5rem 1rem',
+                          color: '#000',
+                          fontSize: '0.8rem',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          transition: 'all 0.3s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.05)';
+                          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}>
+                          <Download size={14} />
+                          CV
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -662,12 +859,10 @@ const Dashboard = () => {
         <h1 onClick={() => navigate("/postjob")} style={{
           fontSize: isMobile ? '1.5rem' : '2rem',
           fontWeight: '800',
-        //   background: 'linear-gradient(135deg, #fcd29f, #d4a056)',
-          WebkitBackgroundClip: 'text',
-        //   WebkitTextFillColor: 'transparent',
+          color:'#fcd29f',
           margin: 0,
           flexShrink: 0,
-          color:'#fcd29f'
+          cursor: 'pointer'
         }}>
           WorkVerse
         </h1>
@@ -678,23 +873,6 @@ const Dashboard = () => {
           gap: isMobile ? '0.75rem' : '1.5rem',
           flexWrap: 'wrap'
         }}>
-          <select
-            value={userRole}
-            onChange={(e) => setUserRole(e.target.value)}
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '12px',
-              padding: '0.75rem 1rem',
-              color: '#f5f5f5',
-              fontSize: '0.9rem',
-              fontWeight: '500'
-            }}
-          >
-            <option value="admin" style={{ background: '#203a43', color: '#f5f5f5' }}>Admin Dashboard</option>
-            <option value="recruiter" style={{ background: '#203a43', color: '#f5f5f5' }}>Recruiter Dashboard</option>
-          </select>
-          
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -705,11 +883,44 @@ const Dashboard = () => {
             borderRadius: '12px',
             border: '1px solid rgba(252, 210, 159, 0.2)'
           }}>
-            {userRole === 'admin' ? <Shield size={18} /> : <UserCheck size={18} />}
+            {isAdmin ? <Shield size={18} /> : <UserCheck size={18} />}
             <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>
-              {userRole === 'admin' ? 'Admin' : 'Recruiter'}
+              {isAdmin ? 'Admin' : 'Recruiter'}
             </span>
           </div>
+          
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'rgba(231, 76, 60, 0.1)',
+              border: '1px solid rgba(231, 76, 60, 0.3)',
+              color: '#e74c3c',
+              padding: '0.75rem 1rem',
+              borderRadius: '12px',
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease',
+              fontFamily: 'inherit'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(231, 76, 60, 0.2)';
+              e.currentTarget.style.borderColor = 'rgba(231, 76, 60, 0.5)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(231, 76, 60, 0.1)';
+              e.currentTarget.style.borderColor = 'rgba(231, 76, 60, 0.3)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <LogOut size={16} />
+            {!isMobile && 'Logout'}
+          </button>
         </div>
       </header>
 
@@ -720,7 +931,7 @@ const Dashboard = () => {
         maxWidth: '100%',
         boxSizing: 'border-box'
       }}>
-        {userRole === 'admin' ? <AdminView /> : <RecruiterView />}
+        {isAdmin ? <AdminView /> : <RecruiterView />}
       </main>
     </div>
   );

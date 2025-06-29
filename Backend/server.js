@@ -53,6 +53,12 @@ app.use(express.urlencoded({ extended: true }));
 // Mount authentication routes under /api/auth prefix
 app.use('/api/auth', require('./routes/auth'));
 
+// Mount admin routes under /api/admin prefix
+app.use('/api/admin', require('./routes/admin'));
+
+// Mount jobs routes under /api/jobs prefix
+app.use('/api/jobs', require('./routes/jobs'));
+
 // Basic welcome route
 app.get("/", (req, res) => {
     res.json({ message: "Welcome to WorkVerse API" });
@@ -79,9 +85,51 @@ app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });
 });
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 CORS enabled for origins: ${allowedOrigins.join(', ')}`);
+/**
+ * Start the server with better error handling
+ */
+const startServer = () => {
+    try {
+        app.listen(PORT, () => {
+            console.log(`🚀 Server is running on http://localhost:${PORT}`);
+            console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`🔗 CORS enabled for origins: ${allowedOrigins.join(', ')}`);
+            console.log(`🔐 Admin routes available at /api/admin`);
+            console.log(`📊 Health check available at /api/health`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error.message);
+        process.exit(1);
+    }
+};
+
+// Handle server startup errors
+app.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use!`);
+        console.log('💡 Try these solutions:');
+        console.log(`   1. Kill the process using port ${PORT}:`);
+        console.log(`      Windows: netstat -ano | findstr :${PORT}`);
+        console.log(`      Then: taskkill /PID <PID> /F`);
+        console.log(`   2. Use a different port: PORT=5001 npm start`);
+        console.log(`   3. Use the clean start script: npm run start:clean`);
+        process.exit(1);
+    } else {
+        console.error('❌ Server error:', error);
+        process.exit(1);
+    }
 });
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM received, shutting down gracefully');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 SIGINT received, shutting down gracefully');
+    process.exit(0);
+});
+
+// Start the server
+startServer();

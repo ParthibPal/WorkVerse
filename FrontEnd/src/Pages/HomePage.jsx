@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Briefcase, Users, TrendingUp, Star, Clock, DollarSign, Filter, ArrowRight, Building, Award, ChevronDown } from 'lucide-react';
 import "../Css/HomePage.css";
 import Navbar from '../Components/Navbar';
+
 const JobPortalHomepage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [location, setLocation] = useState('');
   const [jobType, setJobType] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [animatedStats, setAnimatedStats] = useState({
     jobs: 0,
     companies: 0,
@@ -15,6 +19,42 @@ const JobPortalHomepage = () => {
     success: 0
   });
   
+  // Fetch jobs from backend
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/jobs?limit=6');
+      const result = await response.json();
+      
+      if (response.ok) {
+        setJobs(result.data.jobs);
+        console.log('Jobs fetched successfully:', result.data.jobs.length, 'jobs');
+      } else {
+        console.error('Failed to fetch jobs:', result.message);
+        setError('Failed to load jobs');
+      }
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setError('Failed to load jobs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch jobs on component mount
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Auto-refresh jobs every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchJobs();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Animate stats on mount
   useEffect(() => {
     const targets = { jobs: 15000, companies: 2500, users: 50000, success: 95 };
@@ -51,44 +91,45 @@ const JobPortalHomepage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const featuredJobs = [
-    {
-      id: 1,
-      title: "Senior Full Stack Developer",
-      company: "TechCorp Inc.",
-      location: "San Francisco, CA",
-      salary: "$120k - $160k",
-      type: "Full-time",
-      logo: "🚀",
-      posted: "2 days ago",
-      applicants: 45,
-      skills: ["React", "Node.js", "MongoDB", "Express"]
-    },
-    {
-      id: 2,
-      title: "UI/UX Designer",
-      company: "Design Studio",
-      location: "New York, NY",
-      salary: "$80k - $110k",
-      type: "Full-time",
-      logo: "🎨",
-      posted: "1 day ago",
-      applicants: 32,
-      skills: ["Figma", "Adobe XD", "Sketch", "Prototyping"]
-    },
-    {
-      id: 3,
-      title: "Data Scientist",
-      company: "AI Solutions",
-      location: "Remote",
-      salary: "$100k - $140k",
-      type: "Remote",
-      logo: "📊",
-      posted: "3 days ago",
-      applicants: 28,
-      skills: ["Python", "ML", "TensorFlow", "SQL"]
+  // Format salary display
+  const formatSalary = (job) => {
+    if (!job.salaryRange.isSalaryVisible) {
+      return 'Salary not disclosed';
     }
-  ];
+    
+    const { minSalary, maxSalary, currency } = job.salaryRange;
+    const currencySymbols = {
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'INR': '₹',
+      'CAD': 'C$',
+      'AUD': 'A$'
+    };
+    
+    const symbol = currencySymbols[currency] || currency;
+    
+    if (minSalary === maxSalary) {
+      return `${symbol}${minSalary.toLocaleString()}`;
+    }
+    
+    return `${symbol}${minSalary.toLocaleString()} - ${symbol}${maxSalary.toLocaleString()}`;
+  };
+
+  // Format job age
+  const formatJobAge = (createdAt) => {
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffTime = now - created;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+    return `${Math.floor(diffDays / 365)} years ago`;
+  };
 
   const testimonials = [
     {
@@ -168,7 +209,6 @@ const JobPortalHomepage = () => {
                 />
               </div>
               <div className="search-field">
-                <Filter className="search-icon" />
                 <select value={jobType} onChange={(e) => setJobType(e.target.value)}>
                   <option value="">Job Type</option>
                   <option value="full-time">Full-time</option>
@@ -179,7 +219,6 @@ const JobPortalHomepage = () => {
                 <ChevronDown className="select-arrow" />
               </div>
               <button className="search-btn">
-                <Search size={20} />
                 Search Jobs
               </button>
             </div>
@@ -224,48 +263,60 @@ const JobPortalHomepage = () => {
             <p>Hand-picked opportunities from top companies</p>
           </div>
           <div className="jobs-grid">
-            {featuredJobs.map(job => (
-              <div key={job.id} className="job-card">
-                <div className="job-header">
-                  <div className="company-logo">{job.logo}</div>
-                  <div className="job-meta">
-                    <div className="job-type-badge">{job.type}</div>
-                    <div className="job-posted">
-                      <Clock size={14} />
-                      {job.posted}
+            {loading ? (
+              <div className="loading-message">Loading jobs...</div>
+            ) : error ? (
+              <div className="error-message">{error}</div>
+            ) : jobs.length === 0 ? (
+              <div className="no-jobs-message">No jobs available at the moment.</div>
+            ) : (
+              jobs.map(job => (
+                <div key={job._id} className="job-card">
+                  <div className="job-header">
+                    <div className="company-logo">🏢</div>
+                    <div className="job-meta">
+                      <div className="job-type-badge">{job.jobType}</div>
+                      <div className="job-posted">
+                        <Clock size={14} />
+                        {formatJobAge(job.createdAt)}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <h3 className="job-title">{job.title}</h3>
-                <div className="job-company">
-                  <Building size={16} />
-                  {job.company}
-                </div>
-                <div className="job-location">
-                  <MapPin size={16} />
-                  {job.location}
-                </div>
-                <div className="job-salary">
-                  <DollarSign size={16} />
-                  {job.salary}
-                </div>
-                <div className="job-skills">
-                  {job.skills.map((skill, idx) => (
-                    <span key={idx} className="skill-tag">{skill}</span>
-                  ))}
-                </div>
-                <div className="job-footer">
-                  <div className="applicants">
-                    <Users size={14} />
-                    {job.applicants} applicants
+                  <h3 className="job-title">{job.jobTitle}</h3>
+                  <div className="job-company">
+                    <Building size={16} />
+                    {job.companyName}
                   </div>
-                  <button className="apply-btn">
-                    Apply Now
-                    <ArrowRight size={16} />
-                  </button>
+                  <div className="job-location">
+                    <MapPin size={16} />
+                    {job.jobLocation}
+                    {job.isRemote && <span className="remote-badge">Remote</span>}
+                  </div>
+                  <div className="job-salary">
+                    <DollarSign size={16} />
+                    {formatSalary(job)}
+                  </div>
+                  <div className="job-skills">
+                    {job.requiredSkills && job.requiredSkills.slice(0, 3).map((skill, idx) => (
+                      <span key={idx} className="skill-tag">{skill}</span>
+                    ))}
+                    {job.requiredSkills && job.requiredSkills.length > 3 && (
+                      <span className="skill-tag">+{job.requiredSkills.length - 3} more</span>
+                    )}
+                  </div>
+                  <div className="job-footer">
+                    <div className="applicants">
+                      <Users size={14} />
+                      {job.totalApplications || 0} applicants
+                    </div>
+                    <button className="apply-btn">
+                      Apply Now
+                      <ArrowRight size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           <div className="section-footer">
             <button className="btn-outline">View All Jobs</button>

@@ -1,28 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Briefcase, MapPin, DollarSign, Clock, Users, Building, Star, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+
 export default function PostJobPage() {
     
   const [formData, setFormData] = useState({
     jobTitle: '',
-    company: '',
-    location: '',
+    companyName: '',
+    jobLocation: '',
     jobType: 'full-time',
-    experience: '',
-    salary: '',
-    description: '',
-    requirements: '',
-    benefits: '',
-    skills: '',
-    category: '',
-    urgency: 'normal',
+    experienceLevel: 'entry-level',
+    minSalary: '',
+    maxSalary: '',
+    currency: 'USD',
+    isSalaryVisible: true,
+    jobDescription: '',
+    jobRequirements: '',
+    jobBenefits: '',
+    requiredSkills: '',
+    jobCategory: '',
+    applicationDeadline: '',
     contactEmail: '',
-    applicationDeadline: ''
+    isUrgent: false,
+    isRemote: false
   });
+  
   const navigate = useNavigate();
+  const { user, token } = useContext(AuthContext);
   const [currentStep, setCurrentStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -35,12 +45,131 @@ export default function PostJobPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError('');
+    setSuccess('');
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    alert('Analysis of job data completed successfully.');
-    setIsSubmitting(false);
+    try {
+      console.log('Starting job submission...');
+      console.log('Form data:', formData);
+      console.log('User token:', token);
+      console.log('User data:', user);
+      console.log('User type:', user?.userType);
+      console.log('Is user employer?', user?.userType === 'employer');
+      
+      // Check if user is authenticated and is an employer
+      if (!token) {
+        setError('No authentication token found. Please login again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!user || user.userType !== 'employer') {
+        setError(`You must be logged in as an employer to post jobs. Current user type: ${user?.userType || 'none'}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate required fields
+      if (!formData.jobTitle || !formData.companyName || !formData.jobLocation || 
+          !formData.jobDescription || !formData.jobRequirements) {
+        setError('Please fill in all required fields');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate application deadline is in the future (only if provided)
+      if (formData.applicationDeadline) {
+        const deadline = new Date(formData.applicationDeadline);
+        if (deadline <= new Date()) {
+          setError('Application deadline must be in the future');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Validate salary range
+      if (formData.minSalary && formData.maxSalary && 
+          parseInt(formData.minSalary) > parseInt(formData.maxSalary)) {
+        setError('Minimum salary cannot be greater than maximum salary');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Prepare job data
+      const jobData = {
+        ...formData,
+        minSalary: parseInt(formData.minSalary) || 0,
+        maxSalary: parseInt(formData.maxSalary) || parseInt(formData.minSalary) || 0, // If max is empty, use min
+        requiredSkills: formData.requiredSkills ? 
+          formData.requiredSkills.split(',').map(s => s.trim()) : [],
+        applicationDeadline: formData.applicationDeadline ? 
+          new Date(formData.applicationDeadline).toISOString() : 
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Default to 30 days from now
+      };
+
+      console.log('Prepared job data:', jobData);
+
+      // Make API call
+      const response = await fetch('http://localhost:5000/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(jobData)
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      const result = await response.json();
+      console.log('Response result:', result);
+
+      if (!response.ok) {
+        // Handle validation errors specifically
+        if (result.errors && Array.isArray(result.errors)) {
+          const errorMessages = result.errors.join(', ');
+          throw new Error(`Validation errors: ${errorMessages}`);
+        }
+        throw new Error(result.message || 'Failed to post job');
+      }
+
+      setSuccess('Job posted successfully!');
+      console.log('Job posted successfully!');
+      
+      // Reset form after successful submission
+      setTimeout(() => {
+        setFormData({
+          jobTitle: '',
+          companyName: '',
+          jobLocation: '',
+          jobType: 'full-time',
+          experienceLevel: 'entry-level',
+          minSalary: '',
+          maxSalary: '',
+          currency: 'USD',
+          isSalaryVisible: true,
+          jobDescription: '',
+          jobRequirements: '',
+          jobBenefits: '',
+          requiredSkills: '',
+          jobCategory: '',
+          applicationDeadline: '',
+          contactEmail: '',
+          isUrgent: false,
+          isRemote: false
+        });
+        setCurrentStep(1);
+        setShowPreview(false);
+        navigate('/dashboard');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error posting job:', error);
+      setError(error.message || 'Failed to post job. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const nextStep = () => {
@@ -52,18 +181,30 @@ export default function PostJobPage() {
   };
 
   const jobCategories = [
-    'Technology', 'Marketing', 'Sales', 'Design', 'Finance', 'HR',
-    'Operations', 'Customer Service', 'Engineering', 'Healthcare',
-    'Education', 'Legal', 'Consulting', 'Manufacturing', 'Other'
+    { value: 'technology', label: 'Technology' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'sales', label: 'Sales' },
+    { value: 'design', label: 'Design' },
+    { value: 'finance', label: 'Finance' },
+    { value: 'human-resources', label: 'Human Resources' },
+    { value: 'operations', label: 'Operations' },
+    { value: 'customer-service', label: 'Customer Service' },
+    { value: 'engineering', label: 'Engineering' },
+    { value: 'healthcare', label: 'Healthcare' },
+    { value: 'education', label: 'Education' },
+    { value: 'legal', label: 'Legal' },
+    { value: 'consulting', label: 'Consulting' },
+    { value: 'manufacturing', label: 'Manufacturing' },
+    { value: 'other', label: 'Other' }
   ];
 
   const experienceLevels = [
-    'Entry Level (0-1 years)',
-    'Junior Level (1-3 years)',
-    'Mid Level (3-5 years)',
-    'Senior Level (5-8 years)',
-    'Lead Level (8+ years)',
-    'Executive Level'
+    { value: 'entry-level', label: 'Entry Level (0-1 years)' },
+    { value: 'junior-level', label: 'Junior Level (1-3 years)' },
+    { value: 'mid-level', label: 'Mid Level (3-5 years)' },
+    { value: 'senior-level', label: 'Senior Level (5-8 years)' },
+    { value: 'lead-level', label: 'Lead Level (8+ years)' },
+    { value: 'executive-level', label: 'Executive Level' }
   ];
 
   return (
@@ -223,6 +364,41 @@ export default function PostJobPage() {
             boxShadow: '0 20px 40px var(--box-shadow)'
           }}>
             <form onSubmit={handleSubmit}>
+              {/* Error and Success Messages */}
+              {error && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem',
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <AlertCircle size={20} />
+                  {error}
+                </div>
+              )}
+              
+              {success && (
+                <div style={{
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem',
+                  color: '#22c55e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <CheckCircle size={20} />
+                  {success}
+                </div>
+              )}
+
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <div>
@@ -287,8 +463,8 @@ export default function PostJobPage() {
                       </label>
                       <input
                         type="text"
-                        name="company"
-                        value={formData.company}
+                        name="companyName"
+                        value={formData.companyName}
                         onChange={handleInputChange}
                         required
                         placeholder="e.g. TechCorp Inc."
@@ -320,8 +496,8 @@ export default function PostJobPage() {
                       </label>
                       <input
                         type="text"
-                        name="location"
-                        value={formData.location}
+                        name="jobLocation"
+                        value={formData.jobLocation}
                         onChange={handleInputChange}
                         required
                         placeholder="e.g. New York, NY / Remote"
@@ -386,8 +562,8 @@ export default function PostJobPage() {
                         Category *
                       </label>
                       <select
-                        name="category"
-                        value={formData.category}
+                        name="jobCategory"
+                        value={formData.jobCategory}
                         onChange={handleInputChange}
                         required
                         style={{
@@ -404,7 +580,7 @@ export default function PostJobPage() {
                       >
                         <option value="">Select Category</option>
                         {jobCategories.map(cat => (
-                          <option key={cat} value={cat.toLowerCase()}>{cat}</option>
+                          <option key={cat.value} value={cat.value}>{cat.label}</option>
                         ))}
                       </select>
                     </div>
@@ -420,8 +596,8 @@ export default function PostJobPage() {
                         Experience Level *
                       </label>
                       <select
-                        name="experience"
-                        value={formData.experience}
+                        name="experienceLevel"
+                        value={formData.experienceLevel}
                         onChange={handleInputChange}
                         required
                         style={{
@@ -437,8 +613,8 @@ export default function PostJobPage() {
                         }}
                       >
                         <option value="">Select Experience</option>
-                        {experienceLevels.map(exp => (
-                          <option key={exp} value={exp}>{exp}</option>
+                        {experienceLevels.map((exp) => (
+                          <option key={exp.value} value={exp.value}>{exp.label}</option>
                         ))}
                       </select>
                     </div>
@@ -480,10 +656,10 @@ export default function PostJobPage() {
                         </label>
                         <input
                           type="text"
-                          name="salary"
-                          value={formData.salary}
+                          name="minSalary"
+                          value={formData.minSalary}
                           onChange={handleInputChange}
-                          placeholder="e.g. $80,000 - $120,000"
+                          placeholder="e.g. $80,000"
                           style={{
                             width: '100%',
                             padding: '0.75rem',
@@ -498,6 +674,45 @@ export default function PostJobPage() {
                           onFocus={(e) => e.target.style.borderColor = 'var(--gold-light)'}
                           onBlur={(e) => e.target.style.borderColor = 'var(--card-border)'}
                         />
+                      </div>
+
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          marginBottom: '0.5rem',
+                          fontWeight: '500',
+                          color: 'var(--text-light)'
+                        }}>
+                          <DollarSign size={16} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                          Currency
+                        </label>
+                        <select
+                          name="currency"
+                          value={formData.currency}
+                          onChange={handleInputChange}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '8px',
+                            background: 'var(--highlight-bg)',
+                            color: 'var(--text-light)',
+                            fontSize: '1rem',
+                            transition: 'border-color 0.3s ease',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="JPY">JPY</option>
+                          <option value="CAD">CAD</option>
+                          <option value="AUD">AUD</option>
+                          <option value="CHF">CHF</option>
+                          <option value="CNY">CNY</option>
+                          <option value="SEK">SEK</option>
+                          <option value="NZD">NZD</option>
+                        </select>
                       </div>
 
                       <div>
@@ -543,8 +758,8 @@ export default function PostJobPage() {
                         Job Description *
                       </label>
                       <textarea
-                        name="description"
-                        value={formData.description}
+                        name="jobDescription"
+                        value={formData.jobDescription}
                         onChange={handleInputChange}
                         required
                         rows={6}
@@ -577,8 +792,8 @@ export default function PostJobPage() {
                         Requirements *
                       </label>
                       <textarea
-                        name="requirements"
-                        value={formData.requirements}
+                        name="jobRequirements"
+                        value={formData.jobRequirements}
                         onChange={handleInputChange}
                         required
                         rows={4}
@@ -611,8 +826,8 @@ export default function PostJobPage() {
                         Benefits & Perks
                       </label>
                       <textarea
-                        name="benefits"
-                        value={formData.benefits}
+                        name="jobBenefits"
+                        value={formData.jobBenefits}
                         onChange={handleInputChange}
                         rows={3}
                         placeholder="Health insurance, flexible hours, remote work, professional development..."
@@ -645,8 +860,8 @@ export default function PostJobPage() {
                       </label>
                       <input
                         type="text"
-                        name="skills"
-                        value={formData.skills}
+                        name="requiredSkills"
+                        value={formData.requiredSkills}
                         onChange={handleInputChange}
                         placeholder="React, Node.js, Python, AWS (separate with commas)"
                         style={{
@@ -702,20 +917,20 @@ export default function PostJobPage() {
                     <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
                       <p style={{ color: 'var(--text-muted)', margin: 0 }}>
                         <Building size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                        {formData.company || 'Company Name'}
+                        {formData.companyName || 'Company Name'}
                       </p>
                       <p style={{ color: 'var(--text-muted)', margin: 0 }}>
                         <MapPin size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                        {formData.location || 'Location'}
+                        {formData.jobLocation || 'Location'}
                       </p>
                       <p style={{ color: 'var(--text-muted)', margin: 0 }}>
                         <Clock size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                        {formData.jobType || 'Job Type'} • {formData.experience || 'Experience Level'}
+                        {formData.jobType || 'Job Type'} • {formData.experienceLevel || 'Experience Level'}
                       </p>
-                      {formData.salary && (
+                      {formData.minSalary && (
                         <p style={{ color: 'var(--success-color)', margin: 0, fontWeight: '500' }}>
                           <DollarSign size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                          {formData.salary}
+                          {formData.minSalary} - {formData.maxSalary} {formData.currency}
                         </p>
                       )}
                     </div>
@@ -937,13 +1152,13 @@ export default function PostJobPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Building size={16} color="var(--gold-light)" />
                     <span style={{ color: 'var(--text-light)' }}>
-                      {formData.company || 'Company Name'}
+                      {formData.companyName || 'Company Name'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <MapPin size={16} color="var(--gold-light)" />
                     <span style={{ color: 'var(--text-muted)' }}>
-                      {formData.location || 'Location'}
+                      {formData.jobLocation || 'Location'}
                     </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -952,17 +1167,17 @@ export default function PostJobPage() {
                       {formData.jobType || 'Job Type'}
                     </span>
                   </div>
-                  {formData.salary && (
+                  {formData.minSalary && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <DollarSign size={16} color="var(--success-color)" />
                       <span style={{ color: 'var(--success-color)', fontWeight: '500' }}>
-                        {formData.salary}
+                        {formData.minSalary} - {formData.maxSalary} {formData.currency}
                       </span>
                     </div>
                   )}
                 </div>
 
-                {formData.description && (
+                {formData.jobDescription && (
                   <div style={{ marginBottom: '1.5rem' }}>
                     <h5 style={{
                       fontSize: '1rem',
@@ -978,13 +1193,13 @@ export default function PostJobPage() {
                       margin: 0,
                       fontSize: '0.9rem'
                     }}>
-                      {formData.description.substring(0, 200)}
-                      {formData.description.length > 200 && '...'}
+                      {formData.jobDescription.substring(0, 200)}
+                      {formData.jobDescription.length > 200 && '...'}
                     </p>
                   </div>
                 )}
 
-                {formData.skills && (
+                {formData.requiredSkills && (
                   <div style={{ marginBottom: '1rem' }}>
                     <h5 style={{
                       fontSize: '1rem',
@@ -995,7 +1210,7 @@ export default function PostJobPage() {
                       Required Skills
                     </h5>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {formData.skills.split(',').map((skill, index) => (
+                      {formData.requiredSkills.split(',').map((skill, index) => (
                         <span
                           key={index}
                           style={{

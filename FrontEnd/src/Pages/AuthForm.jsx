@@ -1,6 +1,7 @@
 import React, { useState } from 'react';  //import React and useState hook to manage local state
 import { motion, AnimatePresence } from 'framer-motion';  // importing animation components from framer-motion
-import { useNavigate } from 'react-router-dom'; // useNavigate is used to programatically users (like after login)
+import { useNavigate, useLocation } from 'react-router-dom'; // useNavigate is used to programatically users (like after login)
+import { useAuth } from '../context/AuthContext'; // Import authentication context
 import '../Css/AuthForm.css'; // importing custom css
 
 /**
@@ -12,6 +13,8 @@ import '../Css/AuthForm.css'; // importing custom css
  * - API integration with backend
  * - Smooth animations between form states
  * - Responsive design for mobile and desktop
+ * - Integration with AuthContext for state management
+ * - SECURITY: Admin registration is disabled - only jobseekers and employers can register
  */
 const AuthForm = () => {  
   // State to toggle between registration and login forms
@@ -19,6 +22,12 @@ const AuthForm = () => {
   
   // React Router navigation hook
   const navigate = useNavigate();
+  
+  // Get current location to handle redirect after login
+  const location = useLocation();
+  
+  // Get authentication methods from context
+  const { login } = useAuth();
   
   // Function to switch between register and login forms
   const toggleForm = () => setIsRegistering(!isRegistering);
@@ -28,7 +37,7 @@ const AuthForm = () => {
     name: '',           // User's full name (registration only)
     email: '',          // User's email address
     password: '',       // User's password
-    userType: 'jobseeker' // User type: jobseeker or employer
+    userType: 'jobseeker' // User type: jobseeker or employer (admin removed for security)
   });
 
   // UI state management
@@ -58,6 +67,8 @@ const AuthForm = () => {
   /**
    * Handle form submission (registration or login)
    * Makes API call to backend and handles response
+   * Now uses AuthContext for state management
+   * SECURITY: Admin registration is prevented on frontend
    */
   const handleSubmit = async (e) => {
     e.preventDefault(); // Prevent default form submission
@@ -73,6 +84,11 @@ const AuthForm = () => {
         email: formData.email,
         password: formData.password
       };
+
+      // SECURITY: Ensure no admin registration through this form
+      if (isRegistering && requestData.userType === 'admin') {
+        throw new Error('Admin registration is not allowed through this form');
+      }
 
       // Make API call to backend
       const response = await fetch(`http://localhost:5000${endpoint}`, {
@@ -105,15 +121,27 @@ const AuthForm = () => {
         });
         setIsRegistering(false);
       } else {
-        // For login, store authentication data and redirect
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // For login, use AuthContext to store authentication data
+        login(data.user, data.token);
 
-        // Redirect based on user type
-        if (data.user.userType === 'employer') {
-          navigate('/dashboard');
+        // Redirect to the page they were trying to access, or default based on user type
+        const from = location.state?.from?.pathname || null;
+        
+        if (from) {
+          // Redirect to the page they were trying to access
+          navigate(from, { replace: true });
         } else {
-          navigate('/home');
+          // FIXED: Proper redirect based on user type
+          if (data.user.isAdmin && data.user.userType === 'admin') {
+            // Admin users go to admin dashboard
+            navigate('/admin-dashboard', { replace: true });
+          } else if (data.user.userType === 'employer') {
+            // Employer users go to employer dashboard
+            navigate('/dashboard', { replace: true });
+          } else {
+            // Jobseeker users go to home page
+            navigate('/home', { replace: true });
+          }
         }
       }
 
@@ -183,6 +211,7 @@ const AuthForm = () => {
               >
                 <option value="jobseeker">Job Seeker</option>
                 <option value="employer">Employer</option>
+                {/* SECURITY: Admin option removed from registration form */}
               </select>
               <button type="submit" disabled={loading}>
                 {loading ? 'Signing Up...' : 'Sign Up'}

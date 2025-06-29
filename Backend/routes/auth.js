@@ -18,12 +18,20 @@ const router = express.Router()          // Create Express router
  * Response:
  * - 201: User registered successfully with JWT token
  * - 400: User already exists or validation error
+ * - 403: Admin registration not allowed through this endpoint
  * - 500: Server error
  */
 router.post('/register', async (req, res) => {
     try {
         // Extract user data from request body
         const { name, email, password, userType } = req.body;
+
+        // SECURITY: Prevent admin registration through regular auth routes
+        if (userType === 'admin') {
+            return res.status(403).json({ 
+                message: 'Admin registration is not allowed through this endpoint. Please use the admin creation script or contact system administrator.' 
+            });
+        }
 
         // Check if user already exists with the same email
         const existingUser = await User.findOne({ email });
@@ -119,7 +127,8 @@ router.post('/login', async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                userType: user.userType
+                userType: user.userType,
+                isAdmin: user.isAdmin || false
             }
         });
 

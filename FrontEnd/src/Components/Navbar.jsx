@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Menu, X, LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { Briefcase, Menu, X, LogOut, User, Settings, ChevronDown, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Import authentication context
 
+/**
+ * Navbar Component
+ * Main navigation component with authentication-aware rendering
+ * Features:
+ * - Responsive design with mobile menu
+ * - User profile dropdown when logged in
+ * - Authentication state management via AuthContext
+ * - Dynamic navigation based on user type
+ * - Admin users can access both admin and employer dashboards
+ */
 const Navbar = () => {
     const navigate = useNavigate();
+    
+    // Get authentication state and methods from context
+    const { user, isAuthenticated, logout } = useAuth();
+    
+    // Local state for UI interactions
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [user, setUser] = useState(null);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-
-    // Check authentication status on component mount
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-        
-        if (token && userData) {
-            setIsLoggedIn(true);
-            setUser(JSON.parse(userData));
-        } else {
-            setIsLoggedIn(false);
-            setUser(null);
-        }
-    }, []);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -35,34 +35,46 @@ const Navbar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isProfileDropdownOpen]);
 
+    /**
+     * Toggle mobile menu visibility
+     */
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
 
+    /**
+     * Close mobile menu
+     */
     const closeMenu = () => {
         setIsMenuOpen(false);
     };
 
+    /**
+     * Handle navigation with menu closing
+     */
     const handleNavigation = (path) => {
         console.log(`Navigate to: ${path}`);
         closeMenu();
+        navigate(path);
     };
 
+    /**
+     * Toggle profile dropdown visibility
+     */
     const toggleProfileDropdown = () => {
         setIsProfileDropdownOpen(!isProfileDropdownOpen);
     };
 
+    /**
+     * Handle user logout
+     * Uses AuthContext logout method and redirects to home
+     */
     const handleLogout = () => {
-        // Clear authentication data
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        // Use AuthContext logout method
+        logout();
         
-        // Update state
-        setIsLoggedIn(false);
-        setUser(null);
+        // Close dropdowns
         setIsProfileDropdownOpen(false);
-        
-        // Close mobile menu if open
         closeMenu();
         
         // Redirect to home page
@@ -72,8 +84,53 @@ const Navbar = () => {
         alert('Logged out successfully!');
     };
 
+    /**
+     * Check if current user is admin
+     */
+    const isAdmin = user?.isAdmin && user?.userType === 'admin';
+
+    /**
+     * Get navigation links based on user type
+     * Different users see different navigation options
+     * Admins can access both admin and employer features
+     */
+    const getNavLinks = () => {
+        if (isAuthenticated()) {
+            if (isAdmin) {
+                // Admin users see both admin and employer options
+                return [
+                    { text: 'Admin Dashboard', path: '/admin-dashboard' },
+                    { text: 'Employer Dashboard', path: '/dashboard' },
+                    { text: 'Post Job', path: '/postjob' },
+                    { text: 'Companies', path: '/companies' },
+                    { text: 'About', path: '/aboutus' },
+                    { text: 'Contact', path: '/contactus' }
+                ];
+            } else if (user?.userType === 'employer') {
+                return [
+                    { text: 'Dashboard', path: '/dashboard' },
+                    { text: 'Post Job', path: '/postjob' },
+                    { text: 'Companies', path: '/companies' },
+                    { text: 'About', path: '/aboutus' },
+                    { text: 'Contact', path: '/contactus' }
+                ];
+            } else {
+                return [
+                    { text: 'Find Jobs', path: '/home' },
+                    { text: 'Companies', path: '/companies' },
+                    { text: 'About', path: '/aboutus' },
+                    { text: 'Contact', path: '/contactus' }
+                ];
+            }
+        } else {
+            return [
+                { text: 'About', path: '/aboutus' },
+                { text: 'Contact', path: '/contactus' }
+            ];
+        }
+    };
+
     return (
-        <>
         <div className="homepage">
             <nav className="navbar">
                 <div className="nav-container">
@@ -84,18 +141,19 @@ const Navbar = () => {
                     
                     {/* Desktop Navigation */}
                     <div className="nav-links desktop-nav">
-                        <a onClick={() => navigate("/home")}>Find Jobs</a>
-                        <a onClick={() => navigate("/companies")}>Companies</a>
-                        <button onClick={() => navigate("/aboutus")} className="nav-link-btn">About</button>
-                        <a onClick={() => navigate("/contactus")}>Contact</a>
+                        {getNavLinks().map((link, index) => (
+                            <a key={index} onClick={() => navigate(link.path)}>
+                                {link.text}
+                            </a>
+                        ))}
                     </div>
                     
                     <div className="nav-buttons desktop-nav">
-                        {isLoggedIn ? (
+                        {isAuthenticated() ? (
                             <div className="user-menu">
                                 <div className="user-trigger" onClick={toggleProfileDropdown}>
                                     <div className="user-avatar">
-                                        <User size={16} />
+                                        {isAdmin ? <Shield size={16} /> : <User size={16} />}
                                     </div>
                                     <span className="user-name">{user?.name}</span>
                                     <ChevronDown size={16} className={`dropdown-arrow ${isProfileDropdownOpen ? 'rotated' : ''}`} />
@@ -106,16 +164,30 @@ const Navbar = () => {
                                         <div className="dropdown-header">
                                             <div className="profile-info">
                                                 <div className="profile-avatar">
-                                                    <User size={20} />
+                                                    {isAdmin ? <Shield size={20} /> : <User size={20} />}
                                                 </div>
                                                 <div className="profile-details">
                                                     <h4>{user?.name}</h4>
                                                     <p>{user?.email}</p>
-                                                    <span className="user-type">{user?.userType}</span>
+                                                    <span className="user-type">
+                                                        {isAdmin ? 'Administrator' : user?.userType}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="dropdown-menu">
+                                            {isAdmin && (
+                                                <>
+                                                    <button className="dropdown-item" onClick={() => navigate('/admin-dashboard')}>
+                                                        <Shield size={16} />
+                                                        Admin Dashboard
+                                                    </button>
+                                                    <button className="dropdown-item" onClick={() => navigate('/dashboard')}>
+                                                        <Briefcase size={16} />
+                                                        Employer Dashboard
+                                                    </button>
+                                                </>
+                                            )}
                                             <button className="dropdown-item" onClick={() => navigate('/profile')}>
                                                 <User size={16} />
                                                 My Profile
@@ -152,32 +224,42 @@ const Navbar = () => {
                     <div className="mobile-menu-overlay" onClick={closeMenu}>
                         <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
                             <div className="mobile-nav-links">
-                                <a href="#jobs" onClick={closeMenu}>Find Jobs</a>
-                                <a href="#companies" onClick={closeMenu}>Companies</a>
-                                <button 
-                                    onClick={() => handleNavigation("/aboutus")} 
-                                    className="mobile-nav-link-btn"
-                                >
-                                    About
-                                </button>
-                                <a href="#contact" onClick={closeMenu}>Contact</a>
+                                {getNavLinks().map((link, index) => (
+                                    <a key={index} onClick={() => handleNavigation(link.path)}>
+                                        {link.text}
+                                    </a>
+                                ))}
                             </div>
                             <div className="mobile-nav-buttons">
-                                {isLoggedIn ? (
+                                {isAuthenticated() ? (
                                     <div className="mobile-user-menu">
                                         <div className="mobile-profile-section">
                                             <div className="mobile-profile-info">
                                                 <div className="mobile-profile-avatar">
-                                                    <User size={20} />
+                                                    {isAdmin ? <Shield size={20} /> : <User size={20} />}
                                                 </div>
                                                 <div className="mobile-profile-details">
                                                     <h4>{user?.name}</h4>
                                                     <p>{user?.email}</p>
-                                                    <span className="mobile-user-type">{user?.userType}</span>
+                                                    <span className="mobile-user-type">
+                                                        {isAdmin ? 'Administrator' : user?.userType}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="mobile-profile-actions">
+                                            {isAdmin && (
+                                                <>
+                                                    <button className="mobile-profile-btn" onClick={() => navigate('/admin-dashboard')}>
+                                                        <Shield size={16} />
+                                                        Admin Dashboard
+                                                    </button>
+                                                    <button className="mobile-profile-btn" onClick={() => navigate('/dashboard')}>
+                                                        <Briefcase size={16} />
+                                                        Employer Dashboard
+                                                    </button>
+                                                </>
+                                            )}
                                             <button className="mobile-profile-btn" onClick={() => navigate('/profile')}>
                                                 <User size={16} />
                                                 My Profile
@@ -738,7 +820,6 @@ const Navbar = () => {
                 }
             `}</style>
         </div>
-        </>
     );
 };
 
