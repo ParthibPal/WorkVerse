@@ -49,6 +49,9 @@ app.use(express.json());
 // Middleware to parse URL-encoded request bodies
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files for CV uploads
+app.use('/uploads', express.static('uploads'));
+
 // API Routes
 // Mount authentication routes under /api/auth prefix
 app.use('/api/auth', require('./routes/auth'));
@@ -58,6 +61,15 @@ app.use('/api/admin', require('./routes/admin'));
 
 // Mount jobs routes under /api/jobs prefix
 app.use('/api/jobs', require('./routes/jobs'));
+
+// Mount companies routes under /api/companies prefix
+app.use('/api/companies', require('./routes/companies'));
+
+// Mount profiles routes under /api/profiles prefix
+app.use('/api/profiles', require('./routes/profiles'));
+
+// Mount applications routes under /api/applications prefix
+app.use('/api/applications', require('./routes/applications'));
 
 // Basic welcome route
 app.get("/", (req, res) => {

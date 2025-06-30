@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { Briefcase, MapPin, DollarSign, Clock, Users, Building, Star, CheckCircle, AlertCircle, Send } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
 export default function PostJobPage() {
@@ -33,6 +33,15 @@ export default function PostJobPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // New state for company checking
+  const [companyExists, setCompanyExists] = useState(null);
+  const [isCheckingCompany, setIsCheckingCompany] = useState(false);
+  const [showCompanyRegistration, setShowCompanyRegistration] = useState(false);
+  
+  // Check if user is returning from company registration
+  const location = useLocation();
+  const returningFromRegistration = location.state?.fromRegistration;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -40,10 +49,71 @@ export default function PostJobPage() {
       ...prev,
       [name]: value
     }));
+    
+    // Reset company check when company name changes
+    if (name === 'companyName') {
+      setCompanyExists(null);
+    }
   };
+
+  // Check if company exists when company name is entered
+  const checkCompanyExists = async (companyName) => {
+    if (!companyName || companyName.length < 3) {
+      setCompanyExists(null);
+      return;
+    }
+
+    setIsCheckingCompany(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/companies?search=${encodeURIComponent(companyName)}&limit=1`);
+      const result = await response.json();
+      
+      if (response.ok && result.data.companies.length > 0) {
+        const foundCompany = result.data.companies[0];
+        // Check if the company name is a close match
+        if (foundCompany.name.toLowerCase().includes(companyName.toLowerCase()) || 
+            companyName.toLowerCase().includes(foundCompany.name.toLowerCase())) {
+          setCompanyExists(foundCompany);
+        } else {
+          setCompanyExists(null);
+        }
+      } else {
+        setCompanyExists(null);
+      }
+    } catch (error) {
+      console.error('Error checking company:', error);
+      setCompanyExists(null);
+    } finally {
+      setIsCheckingCompany(false);
+    }
+  };
+
+  // Debounced company check
+  const debouncedCompanyCheck = React.useCallback(
+    React.useMemo(() => {
+      let timeoutId;
+      return (companyName) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => checkCompanyExists(companyName), 500);
+      };
+    }, []),
+    []
+  );
+
+  // Check company when company name changes
+  React.useEffect(() => {
+    debouncedCompanyCheck(formData.companyName);
+  }, [formData.companyName, debouncedCompanyCheck]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all required fields before submission
+    if (!isFormComplete()) {
+      setError('Please fill in all required fields before submitting');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError('');
     setSuccess('');
@@ -69,12 +139,20 @@ export default function PostJobPage() {
         return;
       }
 
-      // Validate required fields
-      if (!formData.jobTitle || !formData.companyName || !formData.jobLocation || 
-          !formData.jobDescription || !formData.jobRequirements) {
-        setError('Please fill in all required fields');
-        setIsSubmitting(false);
-        return;
+      // Check if company exists and warn user if it doesn't
+      if (!companyExists && formData.companyName) {
+        const shouldContinue = window.confirm(
+          `The company "${formData.companyName}" doesn't exist in our database. Would you like to:\n\n` +
+          `1. Continue posting the job (company will be created automatically)\n` +
+          `2. Register your company first for better visibility\n\n` +
+          `Click OK to continue posting, or Cancel to register your company first.`
+        );
+        
+        if (!shouldContinue) {
+          setShowCompanyRegistration(true);
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       // Validate application deadline is in the future (only if provided)
@@ -161,6 +239,7 @@ export default function PostJobPage() {
         });
         setCurrentStep(1);
         setShowPreview(false);
+        setCompanyExists(null);
         navigate('/dashboard');
       }, 2000);
 
@@ -173,11 +252,38 @@ export default function PostJobPage() {
   };
 
   const nextStep = () => {
+    // Validate current step before proceeding
+    if (currentStep === 1) {
+      if (!formData.jobTitle || !formData.companyName || !formData.jobLocation) {
+        setError('Please fill in all required fields: Job Title, Company Name, and Location');
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.jobDescription || !formData.jobRequirements) {
+        setError('Please fill in all required fields: Job Description and Job Requirements');
+        return;
+      }
+    }
+    
+    setError(''); // Clear any previous errors
     if (currentStep < 3) setCurrentStep(currentStep + 1);
   };
 
   const prevStep = () => {
+    setError(''); // Clear errors when going back
     if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
+  // Helper function to check if all required fields are filled
+  const isFormComplete = () => {
+    const requiredFields = [
+      formData.jobTitle,
+      formData.companyName,
+      formData.jobLocation,
+      formData.jobDescription,
+      formData.jobRequirements
+    ];
+    return requiredFields.every(field => field && field.trim() !== '');
   };
 
   const jobCategories = [
@@ -399,6 +505,23 @@ export default function PostJobPage() {
                 </div>
               )}
 
+              {returningFromRegistration && (
+                <div style={{
+                  background: 'rgba(212, 160, 86, 0.1)',
+                  border: '1px solid rgba(212, 160, 86, 0.3)',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem',
+                  color: '#d4a056',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <Building size={20} />
+                  Welcome back! Your company has been registered. You can now continue with your job posting.
+                </div>
+              )}
+
               {/* Step 1: Basic Information */}
               {currentStep === 1 && (
                 <div>
@@ -461,27 +584,140 @@ export default function PostJobPage() {
                       }}>
                         Company Name *
                       </label>
-                      <input
-                        type="text"
-                        name="companyName"
-                        value={formData.companyName}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="e.g. TechCorp Inc."
-                        style={{
-                          width: '100%',
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          name="companyName"
+                          value={formData.companyName}
+                          onChange={handleInputChange}
+                          required
+                          placeholder="e.g. TechCorp Inc."
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            paddingRight: '2.5rem',
+                            border: '1px solid var(--card-border)',
+                            borderRadius: '8px',
+                            background: 'var(--highlight-bg)',
+                            color: 'var(--text-light)',
+                            fontSize: '1rem',
+                            transition: 'border-color 0.3s ease',
+                            outline: 'none'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = 'var(--gold-light)'}
+                          onBlur={(e) => e.target.style.borderColor = 'var(--card-border)'}
+                        />
+                        
+                        {/* Company Status Indicator */}
+                        {formData.companyName && (
+                          <div style={{
+                            position: 'absolute',
+                            right: '0.75rem',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}>
+                            {isCheckingCompany ? (
+                              <div style={{
+                                width: '16px',
+                                height: '16px',
+                                border: '2px solid var(--gold-light)',
+                                borderTop: '2px solid transparent',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite'
+                              }} />
+                            ) : companyExists ? (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                color: '#22c55e',
+                                fontSize: '0.75rem'
+                              }}>
+                                <CheckCircle size={16} />
+                                <span>Verified</span>
+                              </div>
+                            ) : formData.companyName.length >= 3 ? (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                color: '#f59e0b',
+                                fontSize: '0.75rem'
+                              }}>
+                                <AlertCircle size={16} />
+                                <span>New</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Company Info */}
+                      {companyExists && (
+                        <div style={{
+                          marginTop: '0.5rem',
                           padding: '0.75rem',
-                          border: '1px solid var(--card-border)',
+                          background: 'rgba(34, 197, 94, 0.1)',
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
                           borderRadius: '8px',
-                          background: 'var(--highlight-bg)',
-                          color: 'var(--text-light)',
-                          fontSize: '1rem',
-                          transition: 'border-color 0.3s ease',
-                          outline: 'none'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = 'var(--gold-light)'}
-                        onBlur={(e) => e.target.style.borderColor = 'var(--card-border)'}
-                      />
+                          fontSize: '0.875rem',
+                          color: '#22c55e'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                            ✓ Company Found: {companyExists.name}
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                            Industry: {companyExists.industry} • Size: {companyExists.size} • Location: {companyExists.location}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!companyExists && formData.companyName && formData.companyName.length >= 3 && !isCheckingCompany && (
+                        <div style={{
+                          marginTop: '0.5rem',
+                          padding: '0.75rem',
+                          background: 'rgba(245, 158, 11, 0.1)',
+                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                          borderRadius: '8px',
+                          fontSize: '0.875rem',
+                          color: '#f59e0b'
+                        }}>
+                          <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
+                            ⚠️ New Company
+                          </div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+                            This company doesn't exist in our database yet. Consider registering it for better visibility.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Navigate to company registration with pre-filled company name
+                              navigate('/register-company', { 
+                                state: { 
+                                  prefillCompany: formData.companyName 
+                                } 
+                              });
+                            }}
+                            style={{
+                              background: 'var(--gold-dark)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.5rem 1rem',
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              transition: 'background 0.3s ease'
+                            }}
+                            onMouseEnter={(e) => e.target.style.background = 'var(--gold-light)'}
+                            onMouseLeave={(e) => e.target.style.background = 'var(--gold-dark)'}
+                          >
+                            Register Company
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -1055,30 +1291,30 @@ export default function PostJobPage() {
                 ) : (
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isFormComplete()}
                     style={{
                       padding: '0.75rem 2rem',
-                      background: isSubmitting ? 'var(--highlight-bg)' : 'linear-gradient(45deg, var(--success-color), #22c55e)',
+                      background: isSubmitting || !isFormComplete() ? 'var(--highlight-bg)' : 'linear-gradient(45deg, var(--success-color), #22c55e)',
                       border: 'none',
                       borderRadius: '8px',
-                      color: isSubmitting ? 'var(--text-muted)' : '#fff',
+                      color: isSubmitting || !isFormComplete() ? 'var(--text-muted)' : '#fff',
                       fontSize: '1rem',
                       fontWeight: '600',
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      cursor: isSubmitting || !isFormComplete() ? 'not-allowed' : 'pointer',
                       transition: 'all 0.3s ease',
-                      boxShadow: isSubmitting ? 'none' : '0 4px 15px rgba(74, 222, 128, 0.3)',
+                      boxShadow: isSubmitting || !isFormComplete() ? 'none' : '0 4px 15px rgba(74, 222, 128, 0.3)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem'
                     }}
                     onMouseOver={(e) => {
-                      if (!isSubmitting) {
+                      if (!isSubmitting && isFormComplete()) {
                         e.target.style.transform = 'translateY(-2px)';
                         e.target.style.boxShadow = '0 6px 20px rgba(74, 222, 128, 0.4)';
                       }
                     }}
                     onMouseOut={(e) => {
-                      if (!isSubmitting) {
+                      if (!isSubmitting && isFormComplete()) {
                         e.target.style.transform = 'translateY(0)';
                         e.target.style.boxShadow = '0 4px 15px rgba(74, 222, 128, 0.3)';
                       }
@@ -1095,6 +1331,11 @@ export default function PostJobPage() {
                           animation: 'spin 1s linear infinite'
                         }}></div>
                         Publishing...
+                      </>
+                    ) : !isFormComplete() ? (
+                      <>
+                        <AlertCircle size={16} />
+                        Complete All Fields
                       </>
                     ) : (
                       <>
@@ -1348,9 +1589,20 @@ export default function PostJobPage() {
           --success-color: #4ade80;
         }
 
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% { transform: translateY(-50%) rotate(0deg); }
+          100% { transform: translateY(-50%) rotate(360deg); }
         }
 
         @media (max-width: 768px) {

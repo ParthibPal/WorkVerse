@@ -103,6 +103,7 @@ const Navbar = () => {
                     { text: 'Employer Dashboard', path: '/dashboard' },
                     { text: 'Post Job', path: '/postjob' },
                     { text: 'Companies', path: '/companies' },
+                    { text: 'Register Company', path: '/register-company' },
                     { text: 'About', path: '/aboutus' },
                     { text: 'Contact', path: '/contactus' }
                 ];
@@ -111,6 +112,7 @@ const Navbar = () => {
                     { text: 'Dashboard', path: '/dashboard' },
                     { text: 'Post Job', path: '/postjob' },
                     { text: 'Companies', path: '/companies' },
+                    { text: 'Register Company', path: '/register-company' },
                     { text: 'About', path: '/aboutus' },
                     { text: 'Contact', path: '/contactus' }
                 ];

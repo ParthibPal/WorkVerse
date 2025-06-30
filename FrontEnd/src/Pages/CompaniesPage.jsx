@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Users, Star, Globe, Calendar, Filter, Grid, List, Award, TrendingUp, Clock, Building, ArrowRight, ChevronDown, Heart, Share2, Bookmark, Briefcase } from 'lucide-react';
 import Navbar from '../Components/Navbar';
 import Footer from '../Components/Footer';
+
 const CompaniesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('all');
@@ -11,132 +12,92 @@ const CompaniesPage = () => {
   const [sortBy, setSortBy] = useState('featured');
   const [isLoaded, setIsLoaded] = useState(false);
   const [savedCompanies, setSavedCompanies] = useState(new Set());
+  
+  // New state for dynamic data
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    hasNext: false,
+    hasPrev: false
+  });
+
+  // Fetch companies from API
+  const fetchCompanies = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: pagination.currentPage,
+        limit: 12,
+        sortBy: sortBy
+      });
+
+      if (searchTerm) params.append('search', searchTerm);
+      if (selectedIndustry !== 'all') params.append('industry', selectedIndustry);
+      if (selectedSize !== 'all') params.append('size', selectedSize);
+      if (selectedLocation !== 'all') params.append('location', selectedLocation);
+
+      const response = await fetch(`http://localhost:5000/api/companies?${params}`);
+      const result = await response.json();
+
+      if (response.ok) {
+        setCompanies(result.data.companies);
+        setPagination(result.data.pagination);
+        console.log('Companies fetched successfully:', result.data.companies.length, 'companies');
+      } else {
+        console.error('Failed to fetch companies:', result.message);
+        setError('Failed to load companies');
+      }
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+      setError('Failed to load companies');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch companies on component mount and when filters change
+  useEffect(() => {
+    fetchCompanies();
+  }, [searchTerm, selectedIndustry, selectedSize, selectedLocation, sortBy, pagination.currentPage]);
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
 
-  // Streamlined company data
-  const companies = [
-    {
-      id: 1,
-      name: "TechNova Solutions",
-      logo: "🚀",
-      industry: "Technology",
-      size: "500-1000",
-      location: "San Francisco, CA",
-      description: "Leading AI and machine learning solutions provider transforming businesses worldwide",
-      rating: 4.8,
-      reviewCount: 342,
-      openJobs: 25,
-      website: "technova.com",
-      featured: true,
-      verified: true,
-      trending: true,
-      topBenefits: ["Remote Work", "Stock Options", "Learning Budget"],
-      salaryRange: "$80k - $180k",
-      hiringUrgency: "high"
-    },
-    {
-      id: 2,
-      name: "GreenEnergy Corp",
-      logo: "🌱",
-      industry: "Energy",
-      size: "1000+",
-      location: "Austin, TX",
-      description: "Renewable energy solutions and sustainability consulting for a greener future",
-      rating: 4.6,
-      reviewCount: 256,
-      openJobs: 18,
-      website: "greenenergy.com",
-      featured: false,
-      verified: true,
-      trending: false,
-      topBenefits: ["401k Match", "Flexible Hours", "Green Commute"],
-      salaryRange: "$70k - $150k",
-      hiringUrgency: "medium"
-    },
-    {
-      id: 3,
-      name: "MedTech Innovations",
-      logo: "🏥",
-      industry: "Healthcare",
-      size: "200-500",
-      location: "Boston, MA",
-      description: "Revolutionary medical technology and healthcare solutions saving lives globally",
-      rating: 4.9,
-      reviewCount: 189,
-      openJobs: 32,
-      website: "medtech-innov.com",
-      featured: true,
-      verified: true,
-      trending: true,
-      topBenefits: ["Premium Healthcare", "Research Time", "Sabbatical"],
-      salaryRange: "$90k - $200k",
-      hiringUrgency: "high"
-    },
-    {
-      id: 4,
-      name: "FinanceFlow",
-      logo: "💰",
-      industry: "Finance",
-      size: "100-200",
-      location: "New York, NY",
-      description: "Modern financial services and digital banking solutions for the next generation",
-      rating: 4.7,
-      reviewCount: 423,
-      openJobs: 15,
-      website: "financeflow.com",
-      featured: false,
-      verified: true,
-      trending: false,
-      topBenefits: ["Bonus Structure", "Stock Options", "Gym Membership"],
-      salaryRange: "$100k - $250k",
-      hiringUrgency: "medium"
-    },
-    {
-      id: 5,
-      name: "EduTech Academy",
-      logo: "📚",
-      industry: "Education",
-      size: "50-100",
-      location: "Seattle, WA",
-      description: "Online learning platforms and educational technology reshaping how we learn",
-      rating: 4.5,
-      reviewCount: 98,
-      openJobs: 12,
-      website: "edutech-academy.com",
-      featured: false,
-      verified: true,
-      trending: true,
-      topBenefits: ["Learning Budget", "Flexible Schedule", "Home Office"],
-      salaryRange: "$60k - $120k",
-      hiringUrgency: "low"
-    },
-    {
-      id: 6,
-      name: "CloudScale Systems",
-      logo: "☁️",
-      industry: "Technology",
-      size: "200-500",
-      location: "Denver, CO",
-      description: "Cloud infrastructure and enterprise solutions powering digital transformation",
-      rating: 4.8,
-      reviewCount: 234,
-      openJobs: 28,
-      website: "cloudscale.com",
-      featured: true,
-      verified: true,
-      trending: false,
-      topBenefits: ["Remote First", "Unlimited PTO", "Tech Stipend"],
-      salaryRange: "$85k - $170k",
-      hiringUrgency: "high"
+  // Format salary range for display
+  const formatSalaryRange = (company) => {
+    if (!company.salaryRange || (!company.salaryRange.min && !company.salaryRange.max)) {
+      return 'Salary not disclosed';
     }
-  ];
+    
+    const currencySymbols = {
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'INR': '₹',
+      'CAD': 'C$',
+      'AUD': 'A$'
+    };
+    
+    const symbol = currencySymbols[company.salaryRange.currency] || company.salaryRange.currency;
+    
+    if (company.salaryRange.min === company.salaryRange.max) {
+      return `${symbol}${company.salaryRange.min.toLocaleString()}`;
+    }
+    
+    return `${symbol}${company.salaryRange.min.toLocaleString()} - ${symbol}${company.salaryRange.max.toLocaleString()}`;
+  };
 
-  const industries = ['all', 'Technology', 'Healthcare', 'Finance', 'Education', 'Energy', 'Retail', 'Agriculture'];
+  const industries = ['all', 'Technology', 'Healthcare', 'Finance', 'Education', 'Energy', 'Retail', 'Agriculture', 'Manufacturing', 'Consulting', 'Media', 'Transportation', 'Real Estate', 'Other'];
   const companySizes = ['all', '1-50', '50-100', '100-200', '200-500', '500-1000', '1000+'];
-  const locations = ['all', 'San Francisco, CA', 'Austin, TX', 'Boston, MA', 'New York, NY', 'Seattle, WA', 'Denver, CO'];
+  const locations = ['all', 'San Francisco, CA', 'Austin, TX', 'Boston, MA', 'New York, NY', 'Seattle, WA', 'Denver, CO', 'Los Angeles, CA', 'Chicago, IL'];
   const sortOptions = [
     { value: 'featured', label: 'Featured First' },
     { value: 'rating', label: 'Highest Rated' },
@@ -193,66 +154,90 @@ const CompaniesPage = () => {
 
       {/* Save button */}
       <button 
-        className={`save-btn ${savedCompanies.has(company.id) ? 'saved' : ''}`}
-        onClick={() => toggleSaveCompany(company.id)}
+        className={`save-btn ${savedCompanies.has(company._id) ? 'saved' : ''}`}
+        onClick={() => toggleSaveCompany(company._id)}
       >
-        <Heart size={16} fill={savedCompanies.has(company.id) ? "currentColor" : "none"} />
+        <Heart size={16} fill={savedCompanies.has(company._id) ? "currentColor" : "none"} />
       </button>
 
-      {/* Company header */}
-      <div className="company-header"style={{marginTop:"3rem"}}>
+      {/* Company logo and basic info */}
+      <div className="company-header">
         <div className="company-logo">{company.logo}</div>
         <div className="company-info">
           <h3 className="company-name">{company.name}</h3>
-          <div className="company-location">
-            <MapPin size={14} />
-            <span>{company.location}</span>
+          <div className="company-meta">
+            <span className="industry">{company.industry}</span>
+            <span className="size">{company.size} employees</span>
           </div>
         </div>
-        <div className={`hiring-status ${company.hiringUrgency}`}>
-          <Clock size={14} />
-          {company.hiringUrgency === 'high' ? 'Hiring' : 
-           company.hiringUrgency === 'medium' ? 'Soon' : 'Open'}
+      </div>
+
+      {/* Rating and reviews */}
+      <div className="rating-section">
+        <div className="stars">
+          {[...Array(5)].map((_, i) => (
+            <Star 
+              key={i} 
+              size={14} 
+              fill={i < Math.floor(company.rating) ? "currentColor" : "none"} 
+            />
+          ))}
         </div>
+        <span className="rating-text">{company.rating} ({company.reviewCount} reviews)</span>
       </div>
 
       {/* Description */}
       <p className="company-description">{company.description}</p>
 
-      {/* Key stats */}
-      <div className="stats-row">
-        <div className="stat">
-          <Star size={16} />
-          <span>{company.rating}</span>
-          <span className="stat-label">({company.reviewCount})</span>
+      {/* Location and website */}
+      <div className="company-details">
+        <div className="location">
+          <MapPin size={14} />
+          {company.location}
         </div>
-        <div className="stat">
-          <Users size={16} />
-          <span>{company.size}</span>
-        </div>
-        <div className="stat">
-          <Briefcase size={16} />
-          <span>{company.openJobs}</span>
-          <span className="stat-label">jobs</span>
-        </div>
+        {company.website && (
+          <div className="website">
+            <Globe size={14} />
+            {company.website}
+          </div>
+        )}
       </div>
 
       {/* Benefits */}
-      <div className="benefits">
-        {company.topBenefits.map((benefit, idx) => (
-          <span key={idx} className="benefit-tag">{benefit}</span>
-        ))}
+      {company.topBenefits && company.topBenefits.length > 0 && (
+        <div className="benefits">
+          <h4>Top Benefits</h4>
+          <div className="benefits-list">
+            {company.topBenefits.slice(0, 3).map((benefit, idx) => (
+              <span key={idx} className="benefit-tag">{benefit}</span>
+            ))}
+            {company.topBenefits.length > 3 && (
+              <span className="benefit-tag">+{company.topBenefits.length - 3} more</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Job info and salary */}
+      <div className="job-info">
+        <div className="open-jobs">
+          <Briefcase size={14} />
+          {company.openJobs} open jobs
+        </div>
+        <div className="salary-range">
+          {formatSalaryRange(company)}
+        </div>
       </div>
 
-      {/* Salary and actions */}
-      <div className="card-footer">
-        <div className="salary">{company.salaryRange}</div>
-        <div className="actions">
-          <button className="btn-view">View Jobs</button>
-          <button className="btn-company">
-            <Globe size={16} />
-          </button>
-        </div>
+      {/* Action buttons */}
+      <div className="card-actions">
+        <button className="view-jobs-btn">
+          View Jobs
+          <ArrowRight size={16} />
+        </button>
+        <button className="view-company-btn">
+          View Company
+        </button>
       </div>
     </div>
   );
@@ -272,6 +257,8 @@ const CompaniesPage = () => {
           --success-color: #4ade80;
           --error-color: #ef4444;
           --warning-color: #f59e0b;
+          --info-color: #3b82f6;
+          --box-shadow: rgba(0, 0, 0, 0.3);
         }
 
         * {
@@ -284,7 +271,8 @@ const CompaniesPage = () => {
           min-height: 100vh;
           background: var(--primary-bg);
           color: var(--text-light);
-          font-family: 'Arial', sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          line-height: 1.6;
         }
 
         @keyframes fadeInUp {
@@ -298,55 +286,87 @@ const CompaniesPage = () => {
           }
         }
 
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
         .header {
-          padding: 100px 24px 60px;
+          padding: 120px 24px 80px;
           text-align: center;
           animation: fadeInUp 0.8s ease-out;
+          background: linear-gradient(135deg, rgba(252, 210, 159, 0.05), rgba(212, 160, 86, 0.02));
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .header h1 {
-          font-size: 3.5rem;
+          font-size: clamp(2.5rem, 5vw, 4rem);
           font-weight: 900;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
           background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          letter-spacing: -0.02em;
         }
 
         .header p {
           font-size: 1.2rem;
           color: var(--text-muted);
-          max-width: 600px;
-          margin: 0 auto 32px;
-          line-height: 1.6;
+          max-width: 700px;
+          margin: 0 auto 40px;
+          line-height: 1.7;
+          font-weight: 400;
         }
 
         .header-stats {
           display: flex;
           justify-content: center;
-          gap: 32px;
+          gap: 48px;
           flex-wrap: wrap;
+          margin-top: 40px;
         }
 
         .header-stat {
           text-align: center;
+          padding: 20px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          min-width: 120px;
+          transition: all 0.3s ease;
+        }
+
+        .header-stat:hover {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(252, 210, 159, 0.3);
         }
 
         .header-stat-number {
-          font-size: 2rem;
-          font-weight: bold;
+          font-size: 2.5rem;
+          font-weight: 800;
           color: var(--gold-light);
           display: block;
+          margin-bottom: 8px;
         }
 
         .header-stat-label {
           font-size: 0.9rem;
           color: var(--text-muted);
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .filters-container {
-          padding: 0 24px;
+          padding: 40px 24px;
           margin-bottom: 40px;
         }
 
@@ -358,35 +378,45 @@ const CompaniesPage = () => {
         .filters-card {
           background: var(--card-bg);
           backdrop-filter: blur(20px);
-          border-radius: 20px;
+          border-radius: 24px;
           padding: 32px;
           border: 1px solid var(--card-border);
+          box-shadow: 0 8px 32px var(--box-shadow);
+          animation: slideIn 0.6s ease-out;
         }
 
         .filters-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
+          margin-bottom: 28px;
+          flex-wrap: wrap;
+          gap: 16px;
         }
 
         .filters-title {
-          font-size: 1.3rem;
-          font-weight: bold;
+          font-size: 1.4rem;
+          font-weight: 700;
           display: flex;
           align-items: center;
           gap: 12px;
+          color: var(--gold-light);
         }
 
         .results-count {
           color: var(--text-muted);
+          font-weight: 500;
+          background: rgba(255, 255, 255, 0.05);
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 0.9rem;
         }
 
         .filters-grid {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 20px;
+          gap: 20px;
+          margin-bottom: 24px;
         }
 
         .search-input {
@@ -399,39 +429,49 @@ const CompaniesPage = () => {
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-muted);
+          z-index: 1;
         }
 
         .search-input input,
         .filter-select {
           width: 100%;
-          padding: 12px 16px 12px 48px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
+          padding: 16px 20px 16px 48px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          border-radius: 16px;
           color: var(--text-light);
-          font-size: 14px;
+          font-size: 15px;
+          font-weight: 500;
           transition: all 0.3s ease;
         }
 
         .filter-select {
-          padding-left: 16px;
+          padding-left: 20px;
           cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ccc' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 16px center;
+          background-size: 16px;
         }
 
         .search-input input::placeholder {
           color: var(--text-muted);
+          font-weight: 400;
         }
 
         .search-input input:focus,
         .filter-select:focus {
           outline: none;
           border-color: var(--gold-light);
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.12);
+          box-shadow: 0 0 0 4px rgba(252, 210, 159, 0.1);
         }
 
         .filter-select option {
-          background: #2c3e50;
+          background: #1a202c;
           color: var(--text-light);
+          padding: 12px;
         }
 
         .filters-secondary {
@@ -439,7 +479,9 @@ const CompaniesPage = () => {
           justify-content: space-between;
           align-items: center;
           flex-wrap: wrap;
-          gap: 16px;
+          gap: 20px;
+          padding-top: 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .sort-container {
@@ -451,39 +493,51 @@ const CompaniesPage = () => {
         .sort-label {
           color: var(--text-muted);
           font-size: 0.9rem;
+          font-weight: 500;
         }
 
         .sort-select {
-          padding: 8px 12px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
+          padding: 10px 16px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
           color: var(--text-light);
           cursor: pointer;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        }
+
+        .sort-select:focus {
+          outline: none;
+          border-color: var(--gold-light);
+          box-shadow: 0 0 0 3px rgba(252, 210, 159, 0.1);
         }
 
         .view-toggle {
           display: flex;
           gap: 4px;
-          background: rgba(255, 255, 255, 0.05);
-          padding: 4px;
-          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.08);
+          padding: 6px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .view-btn {
-          padding: 8px 12px;
-          border-radius: 6px;
+          padding: 10px 14px;
+          border-radius: 8px;
           border: none;
           cursor: pointer;
           transition: all 0.3s ease;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-weight: 500;
         }
 
         .view-btn.active {
           background: var(--gold-light);
-          color: black;
+          color: #0f2027;
+          box-shadow: 0 4px 12px rgba(252, 210, 159, 0.3);
         }
 
         .view-btn:not(.active) {
@@ -491,8 +545,13 @@ const CompaniesPage = () => {
           color: var(--text-muted);
         }
 
+        .view-btn:hover:not(.active) {
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-light);
+        }
+
         .companies-section {
-          padding: 0 24px 60px;
+          padding: 0 24px 80px;
         }
 
         .companies-wrapper {
@@ -502,12 +561,12 @@ const CompaniesPage = () => {
 
         .companies-grid {
           display: grid;
-          gap: 24px;
+          gap: 28px;
           animation: fadeInUp 0.8s ease-out;
         }
 
         .companies-grid.grid-view {
-          grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
         }
 
         .companies-grid.list-view {
@@ -519,62 +578,86 @@ const CompaniesPage = () => {
           background: var(--card-bg);
           backdrop-filter: blur(20px);
           border: 1px solid var(--card-border);
-          border-radius: 16px;
-          padding: 24px;
-          transition: all 0.3s ease;
+          border-radius: 20px;
+          padding: 28px;
+          transition: all 0.4s ease;
           cursor: pointer;
           animation: fadeInUp 0.6s ease-out both;
+          overflow: hidden;
+        }
+
+        .company-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, var(--gold-light), var(--gold-dark));
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
 
         .company-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          transform: translateY(-6px);
+          box-shadow: 0 24px 48px var(--box-shadow);
           border-color: rgba(252, 210, 159, 0.3);
         }
 
+        .company-card:hover::before {
+          opacity: 1;
+        }
+
         .company-card.featured-card {
-          background: linear-gradient(135deg, rgba(252, 210, 159, 0.1), rgba(212, 160, 86, 0.05));
-          border-color: rgba(252, 210, 159, 0.2);
+          background: linear-gradient(135deg, rgba(252, 210, 159, 0.08), rgba(212, 160, 86, 0.04));
+          border-color: rgba(252, 210, 159, 0.25);
+        }
+
+        .company-card.featured-card::before {
+          opacity: 1;
         }
 
         .card-badges {
           position: absolute;
-          top: 16px;
-          left: 16px;
+          top: 20px;
+          left: 20px;
           display: flex;
-          gap: 6px;
+          gap: 8px;
+          z-index: 2;
         }
 
         .badge {
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 0.7rem;
-          font-weight: 600;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 700;
           text-transform: uppercase;
+          letter-spacing: 0.5px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .badge.featured {
           background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
-          color: black;
+          color: #0f2027;
         }
 
         .badge.trending {
-          background: var(--info-color);
+          background: linear-gradient(135deg, var(--info-color), #1d4ed8);
           color: white;
         }
 
         .badge.verified {
-          background: var(--success-color);
+          background: linear-gradient(135deg, var(--success-color), #16a34a);
           color: white;
         }
 
         .save-btn {
           position: absolute;
-          top: 16px;
-          right: 16px;
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
+          top: 20px;
+          right: 20px;
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
           border: none;
           background: rgba(255, 255, 255, 0.1);
           color: var(--text-muted);
@@ -583,36 +666,40 @@ const CompaniesPage = () => {
           display: flex;
           align-items: center;
           justify-content: center;
+          z-index: 2;
         }
 
         .save-btn:hover {
           background: rgba(255, 255, 255, 0.2);
           color: var(--text-light);
+          transform: scale(1.1);
         }
 
         .save-btn.saved {
-          background: var(--error-color);
+          background: linear-gradient(135deg, var(--error-color), #dc2626);
           color: white;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
 
         .company-header {
           display: flex;
           align-items: flex-start;
-          gap: 16px;
-          margin-bottom: 16px;
-          margin-top: 20px;
+          gap: 20px;
+          margin-bottom: 20px;
+          margin-top: 30px;
         }
 
         .company-logo {
-          width: 48px;
-          height: 48px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
+          width: 60px;
+          height: 60px;
+          background: linear-gradient(135deg, rgba(252, 210, 159, 0.2), rgba(212, 160, 86, 0.1));
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.5rem;
+          font-size: 1.8rem;
           flex-shrink: 0;
+          border: 1px solid rgba(252, 210, 159, 0.2);
         }
 
         .company-info {
@@ -621,237 +708,378 @@ const CompaniesPage = () => {
         }
 
         .company-name {
-          font-size: 1.2rem;
-          font-weight: bold;
-          margin-bottom: 4px;
+          font-size: 1.4rem;
+          font-weight: 700;
+          margin-bottom: 8px;
           color: var(--text-light);
+          line-height: 1.3;
         }
 
-        .company-location {
+        .company-meta {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+
+        .industry {
+          background: rgba(252, 210, 159, 0.15);
+          color: var(--gold-light);
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          border: 1px solid rgba(252, 210, 159, 0.2);
+        }
+
+        .size {
           color: var(--text-muted);
           font-size: 0.85rem;
+          font-weight: 500;
         }
 
-        .hiring-status {
+        .rating-section {
           display: flex;
           align-items: center;
-          gap: 4px;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          white-space: nowrap;
-          flex-shrink: 0;
+          gap: 8px;
+          margin-bottom: 16px;
         }
 
-        .hiring-status.high {
-          background: var(--error-color);
-          color: white;
+        .stars {
+          display: flex;
+          gap: 2px;
+          color: var(--gold-light);
         }
 
-        .hiring-status.medium {
-          background: var(--warning-color);
-          color: white;
-        }
-
-        .hiring-status.low {
-          background: var(--success-color);
-          color: white;
+        .rating-text {
+          color: var(--text-muted);
+          font-size: 0.85rem;
+          font-weight: 500;
         }
 
         .company-description {
           color: var(--text-muted);
-          font-size: 0.9rem;
-          line-height: 1.5;
-          margin-bottom: 16px;
+          font-size: 0.95rem;
+          line-height: 1.6;
+          margin-bottom: 20px;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
-        .stats-row {
+        .company-details {
           display: flex;
-          gap: 20px;
-          margin-bottom: 16px;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 20px;
         }
 
-        .stat {
+        .location,
+        .website {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           color: var(--text-muted);
-          font-size: 0.85rem;
+          font-size: 0.9rem;
+          font-weight: 500;
         }
 
-        .stat svg {
+        .location svg,
+        .website svg {
           color: var(--gold-light);
-        }
-
-        .stat-label {
-          color: var(--text-muted);
-          font-size: 0.75rem;
+          flex-shrink: 0;
         }
 
         .benefits {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
 
-        .benefit-tag {
-          padding: 4px 8px;
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
-          font-size: 0.75rem;
-          color: var(--text-light);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .card-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 16px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .salary {
+        .benefits h4 {
+          font-size: 0.9rem;
           font-weight: 600;
           color: var(--gold-light);
-          font-size: 0.9rem;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
-        .actions {
+        .benefits-list {
           display: flex;
+          flex-wrap: wrap;
           gap: 8px;
         }
 
-        .btn-view {
-          padding: 8px 16px;
-          background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
-          color: black;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          cursor: pointer;
+        .benefit-tag {
+          padding: 6px 12px;
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 16px;
+          font-size: 0.8rem;
+          color: var(--text-light);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          font-weight: 500;
           transition: all 0.3s ease;
         }
 
-        .btn-view:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(252, 210, 159, 0.3);
+        .benefit-tag:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(252, 210, 159, 0.3);
         }
 
-        .btn-company {
-          width: 32px;
-          height: 32px;
-          background: rgba(255, 255, 255, 0.1);
+        .job-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding: 16px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .open-jobs {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: var(--success-color);
+          font-weight: 600;
+          font-size: 0.9rem;
+        }
+
+        .salary-range {
+          color: var(--gold-light);
+          font-weight: 600;
+          font-size: 0.9rem;
+        }
+
+        .card-actions {
+          display: flex;
+          gap: 12px;
+        }
+
+        .view-jobs-btn,
+        .view-company-btn {
+          flex: 1;
+          padding: 12px 20px;
           border: none;
-          border-radius: 8px;
-          color: var(--text-muted);
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 0.9rem;
           cursor: pointer;
           transition: all 0.3s ease;
           display: flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
         }
 
-        .btn-company:hover {
-          background: rgba(255, 255, 255, 0.2);
+        .view-jobs-btn {
+          background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+          color: #0f2027;
+        }
+
+        .view-jobs-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(252, 210, 159, 0.3);
+        }
+
+        .view-company-btn {
+          background: rgba(255, 255, 255, 0.1);
           color: var(--text-light);
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .no-results {
+        .view-company-btn:hover {
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(252, 210, 159, 0.3);
+          transform: translateY(-2px);
+        }
+
+        /* Loading and empty states */
+        .loading-container,
+        .empty-container {
           text-align: center;
-          padding: 60px 24px;
-          color: var(--text-muted);
+          padding: 80px 24px;
+          animation: fadeInUp 0.8s ease-out;
         }
 
-        .no-results h3 {
-          font-size: 1.3rem;
+        .loading-spinner {
+          width: 48px;
+          height: 48px;
+          border: 3px solid rgba(252, 210, 159, 0.3);
+          border-top: 3px solid var(--gold-light);
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        .empty-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--gold-light);
           margin-bottom: 12px;
-          color: var(--text-light);
         }
 
-        .no-results p {
+        .empty-text {
+          color: var(--text-muted);
+          font-size: 1rem;
           margin-bottom: 24px;
         }
 
-        .clear-filters-btn {
-          padding: 12px 24px;
-          background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
-          color: black;
-          border: none;
-          border-radius: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
+        /* Pagination */
+        .pagination {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          margin-top: 40px;
+          padding: 20px;
         }
 
-        .clear-filters-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 16px rgba(252, 210, 159, 0.3);
+        .pagination-btn {
+          padding: 12px 16px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: rgba(255, 255, 255, 0.05);
+          color: var(--text-light);
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-weight: 500;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: var(--gold-light);
+        }
+
+        .pagination-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+          background: var(--gold-light);
+          color: #0f2027;
+          border-color: var(--gold-light);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+          .companies-grid.grid-view {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          }
         }
 
         @media (max-width: 768px) {
+          .header {
+            padding: 80px 16px 60px;
+          }
+
           .header h1 {
             font-size: 2.5rem;
           }
 
+          .header-stats {
+            gap: 24px;
+          }
+
+          .header-stat {
+            min-width: 100px;
+            padding: 16px;
+          }
+
+          .header-stat-number {
+            font-size: 2rem;
+          }
+
+          .filters-container {
+            padding: 24px 16px;
+          }
+
+          .filters-card {
+            padding: 24px;
+          }
+
           .filters-grid {
             grid-template-columns: 1fr;
+            gap: 16px;
+          }
+
+          .filters-secondary {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .sort-container {
+            justify-content: center;
+          }
+
+          .companies-section {
+            padding: 0 16px 60px;
           }
 
           .companies-grid.grid-view {
             grid-template-columns: 1fr;
           }
 
+          .company-card {
+            padding: 24px;
+          }
+
           .company-header {
-            flex-wrap: wrap;
-          }
-
-          .hiring-status {
-            order: -1;
-            margin-left: auto;
-          }
-
-          .stats-row {
             gap: 16px;
           }
 
-          .card-footer {
-            flex-direction: column;
-            gap: 12px;
-            align-items: stretch;
+          .company-logo {
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
           }
 
-          .actions {
-            justify-content: center;
+          .company-name {
+            font-size: 1.2rem;
+          }
+
+          .job-info {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+          }
+
+          .card-actions {
+            flex-direction: column;
           }
         }
 
         @media (max-width: 480px) {
-          .header {
-            padding: 80px 16px 40px;
-          }
-
           .header h1 {
             font-size: 2rem;
           }
 
-          .filters-card {
-            padding: 20px;
+          .header p {
+            font-size: 1rem;
           }
 
           .company-card {
             padding: 20px;
           }
 
-          .companies-section {
-            padding: 0 16px 40px;
+          .company-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .company-meta {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
           }
         }
       `}</style>
@@ -888,7 +1116,7 @@ const CompaniesPage = () => {
                 <span>Find Your Perfect Company</span>
               </div>
               <div className="results-count">
-                {filteredAndSortedCompanies.length} companies found
+                {loading ? 'Loading...' : `${pagination.total} companies found`}
               </div>
             </div>
 
@@ -978,13 +1206,56 @@ const CompaniesPage = () => {
 
       {/* Companies Section */}
       <div className="companies-section">
-        <div className="companies-wrapper" >
-          {filteredAndSortedCompanies.length > 0 ? (
-            <div className={`companies-grid ${viewMode}-view`} >
-              {filteredAndSortedCompanies.map((company, index) => (
-                <CompanyCard key={company.id} company={company} index={index} />
-              ))}
+        <div className="companies-wrapper">
+          {loading ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Loading companies...</p>
             </div>
+          ) : error ? (
+            <div className="error-state">
+              <h3>Error loading companies</h3>
+              <p>{error}</p>
+              <button 
+                className="retry-btn"
+                onClick={fetchCompanies}
+              >
+                Try Again
+              </button>
+            </div>
+          ) : companies.length > 0 ? (
+            <>
+              <div className={`companies-grid ${viewMode}-view`}>
+                {companies.map((company, index) => (
+                  <CompanyCard key={company._id} company={company} index={index} />
+                ))}
+              </div>
+              
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="pagination">
+                  <button 
+                    className="pagination-btn"
+                    disabled={!pagination.hasPrev}
+                    onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="page-info">
+                    Page {pagination.currentPage} of {pagination.totalPages}
+                  </div>
+                  
+                  <button 
+                    className="pagination-btn"
+                    disabled={!pagination.hasNext}
+                    onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="no-results">
               <h3>No companies found</h3>
@@ -996,6 +1267,7 @@ const CompaniesPage = () => {
                   setSelectedIndustry('all');
                   setSelectedSize('all');
                   setSelectedLocation('all');
+                  setPagination(prev => ({ ...prev, currentPage: 1 }));
                 }}
               >
                 Clear All Filters

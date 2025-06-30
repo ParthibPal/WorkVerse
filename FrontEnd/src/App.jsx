@@ -14,14 +14,16 @@ import AboutUs from './Pages/AboutUs.jsx';
 import ContactPage from './Pages/ContactPage.jsx';
 import PostJobPage from './Pages/PostJobPage.jsx';
 import CompaniesPage from './Pages/CompaniesPage.jsx';
+import CompanyRegistrationPage from './Pages/CompanyRegistrationPage.jsx';
+import ProfilePage from './Pages/ProfilePage.jsx';
 
 /**
  * App Component
  * Main application component that sets up routing and authentication
  * 
  * Route Structure:
- * - Public routes: Landing, Login, AdminLogin, About, Contact
- * - Protected routes: Dashboard (employers), Home (jobseekers), PostJob, Companies
+ * - Public routes: Landing, Login, AdminLogin, About, Contact, CompanyRegistration
+ * - Protected routes: Dashboard (employers), Home (jobseekers), PostJob, Companies, Profile
  * - Admin routes: AdminDashboard (admin only)
  * - User-specific routes: Dashboard (employers), Home (jobseekers)
  */
@@ -36,6 +38,7 @@ function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/aboutus" element={<AboutUs />} />
         <Route path="/contactus" element={<ContactPage />} />
+        <Route path="/register-company" element={<CompanyRegistrationPage />} />
         
         {/* Protected Routes - Require authentication */}
         <Route 
@@ -70,6 +73,15 @@ function App() {
           element={
             <ProtectedRoute>
               <CompaniesPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           } 
         />
