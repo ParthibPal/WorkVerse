@@ -34,31 +34,8 @@ const LoadingSpinner = ({ size = 'medium', message = 'Loading...', fullScreen = 
   };
 
   return (
-    <div style={containerStyles}>
-      {/* Spinner animation */}
-      <div 
-        className={`animate-spin rounded-full border-4 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`}
-        style={{
-          animation: 'spin 1s linear infinite'
-        }}
-      />
-      
-      {/* Loading message */}
-      <p style={{ 
-        marginTop: '10px', 
-        color: '#666',
-        fontSize: size === 'large' ? '16px' : '14px'
-      }}>
-        {message}
-      </p>
-      
-      {/* CSS for the spin animation */}
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+    <div className="spinner-overlay">
+      <div className="spinner" />
     </div>
   );
 };

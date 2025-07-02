@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -91,52 +90,29 @@ const AdminLogin = () => {
     }
   };
 
-  /**
-   * Animation variants for smooth form transitions
-   */
-  const formVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0 },
-  };
-
   return (
     <div className="admin-login-container">
       <div className="admin-login-box">
         {/* Header with admin icon */}
-        <motion.div 
-          className="admin-header"
-          initial="hidden"
-          animate="visible"
-          variants={formVariants}
-          transition={{ duration: 0.5 }}
-        >
+        <div className="admin-header">
           <div className="admin-icon">
             <Shield size={48} />
           </div>
           <h1>Admin Access</h1>
           <p>Enter your administrator credentials</p>
-        </motion.div>
+        </div>
 
         {/* Error message display */}
         {error && (
-          <motion.div 
-            className="error-message"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
+          <div className="error-message">
             {error}
-          </motion.div>
+          </div>
         )}
 
         {/* Login form */}
-        <motion.form
+        <form
           className="admin-login-form"
           onSubmit={handleSubmit}
-          initial="hidden"
-          animate="visible"
-          variants={formVariants}
-          transition={{ duration: 0.5, delay: 0.2 }}
         >
           {/* Email input */}
           <div className="form-group">
@@ -197,16 +173,10 @@ const AdminLogin = () => {
               </>
             )}
           </button>
-        </motion.form>
+        </form>
 
         {/* Footer */}
-        <motion.div 
-          className="admin-footer"
-          initial="hidden"
-          animate="visible"
-          variants={formVariants}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
+        <div className="admin-footer">
           <p>This area is restricted to authorized administrators only.</p>
           <button 
             className="back-to-main"
@@ -214,7 +184,7 @@ const AdminLogin = () => {
           >
             ← Back to Main Site
           </button>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -37,8 +37,7 @@ export default function PostJobPage() {
   // New state for company checking
   const [companyExists, setCompanyExists] = useState(null);
   const [isCheckingCompany, setIsCheckingCompany] = useState(false);
-  const [showCompanyRegistration, setShowCompanyRegistration] = useState(false);
-  
+
   // Check if user is returning from company registration
   const location = useLocation();
   const returningFromRegistration = location.state?.fromRegistration;
@@ -65,7 +64,7 @@ export default function PostJobPage() {
 
     setIsCheckingCompany(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/companies?search=${encodeURIComponent(companyName)}&limit=1`);
+      const response = await fetch(`http://localhost:5000/api/companies?exactName=${encodeURIComponent(companyName)}&limit=1`);
       const result = await response.json();
       
       if (response.ok && result.data.companies.length > 0) {
@@ -149,7 +148,11 @@ export default function PostJobPage() {
         );
         
         if (!shouldContinue) {
-          setShowCompanyRegistration(true);
+          navigate('/register-company', { 
+            state: { 
+              prefillCompany: formData.companyName 
+            } 
+          });
           setIsSubmitting(false);
           return;
         }

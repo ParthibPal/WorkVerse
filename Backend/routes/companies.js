@@ -11,6 +11,7 @@ router.get('/', async (req, res) => {
   try {
     const {
       search,
+      exactName,
       industry,
       size,
       location,
@@ -25,8 +26,11 @@ router.get('/', async (req, res) => {
     // Build filter object
     const filter = {};
 
-    // Search filter
-    if (search) {
+    // Exact name filter (case-insensitive)
+    if (exactName) {
+      filter.name = { $regex: `^${exactName}$`, $options: 'i' };
+    } else if (search) {
+      // Search filter
       filter.$text = { $search: search };
     }
 

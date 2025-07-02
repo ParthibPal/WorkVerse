@@ -1,5 +1,5 @@
 import React, { useState } from 'react';  //import React and useState hook to manage local state
-import { motion, AnimatePresence } from 'framer-motion';  // importing animation components from framer-motion
+import { AnimatePresence } from 'framer-motion';  // importing animation components from framer-motion
 import { useNavigate, useLocation } from 'react-router-dom'; // useNavigate is used to programatically users (like after login)
 import { useAuth } from '../context/AuthContext'; // Import authentication context
 import '../Css/AuthForm.css'; // importing custom css
@@ -168,7 +168,7 @@ const AuthForm = () => {
 
         <AnimatePresence mode="wait">
           {isRegistering ? (
-            <motion.form
+            <form
               key="register"
               initial="hidden"
               animate="visible"
@@ -216,9 +216,9 @@ const AuthForm = () => {
               <button type="submit" disabled={loading}>
                 {loading ? 'Signing Up...' : 'Sign Up'}
               </button>
-            </motion.form>
+            </form>
           ) : (
-            <motion.form
+            <form
               key="login"
               initial="hidden"
               animate="visible"
@@ -247,7 +247,7 @@ const AuthForm = () => {
               <button type="submit" disabled={loading}>
                 {loading ? 'Signing In...' : 'Sign In'}
               </button>
-            </motion.form>
+            </form>
           )}
         </AnimatePresence>
 

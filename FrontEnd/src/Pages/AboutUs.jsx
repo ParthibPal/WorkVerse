@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../Components/Navbar';
 import { 
   Users, Target, Zap, Award, ArrowRight, CheckCircle, Globe, Briefcase, 
@@ -9,11 +9,8 @@ import {
 import "../Css/AboutUs.css"
 import Footer from '../Components/Footer';
 const AboutUs = () => {
-  const [isVisible, setIsVisible] = useState(false);
   const [activeCard, setActiveCard] = useState(null);
   const [activeTimeline, setActiveTimeline] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
   const [activeTab, setActiveTab] = useState('mission');
   const [counters, setCounters] = useState({
     jobSeekers: 0,
@@ -22,14 +19,7 @@ const AboutUs = () => {
     successRate: 0
   });
 
-  const videoRef = useRef(null);
-
   useEffect(() => {
-    setIsVisible(true);
-    
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-
     // Animate counters
     const animateCounters = () => {
       const targets = { jobSeekers: 50000, companies: 5000, placements: 25000, successRate: 98 };
@@ -53,8 +43,6 @@ const AboutUs = () => {
     };
 
     setTimeout(animateCounters, 500);
-
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const stats = [

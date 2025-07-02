@@ -4,6 +4,7 @@ const Job = require('../models/Job');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const employerMiddleware = require('../middleware/employerMiddleware');
+const Company = require('../models/Company');
 
 /**
  * @route   GET /api/jobs/test
@@ -215,10 +216,25 @@ router.post('/', [authMiddleware, employerMiddleware], async (req, res) => {
       (Array.isArray(requiredSkills) ? requiredSkills : requiredSkills.split(',').map(s => s.trim())) : 
       [];
 
+    // Check for existing company (case-insensitive)
+    let company = await Company.findOne({ name: { $regex: new RegExp(`^${companyName}$`, 'i') } });
+    if (!company) {
+      // Create a new company with minimal info if not found
+      company = new Company({
+        name: companyName,
+        industry: 'Other',
+        size: '1-50',
+        location: jobLocation || 'Unknown',
+        description: 'Auto-created company from job posting.',
+        contactEmail: contactEmail || 'unknown@company.com',
+      });
+      await company.save();
+    }
+
     // Create job object
     const jobData = {
       jobTitle,
-      companyName,
+      companyName: company.name,
       jobLocation,
       jobType,
       experienceLevel,

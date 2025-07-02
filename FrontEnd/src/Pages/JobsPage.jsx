@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, DollarSign, Clock, Building, Filter, Briefcase, Star, Users, Eye } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
@@ -24,6 +25,16 @@ export default function JobsPage() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
+  const { user, token } = useAuth();
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [cvFile, setCvFile] = useState(null);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applyError, setApplyError] = useState('');
+  const [applySuccess, setApplySuccess] = useState('');
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const location = useLocation();
 
   // Fetch jobs from API
   const fetchJobs = async (page = 1) => {
@@ -60,7 +71,18 @@ export default function JobsPage() {
   // Fetch jobs on component mount and when filters change
   useEffect(() => {
     fetchJobs(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  // On mount, check for ?company= in the URL and set filters.search
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const company = params.get('company');
+    if (company) {
+      setFilters(prev => ({ ...prev, search: company }));
+    }
+    // eslint-disable-next-line
+  }, []);
 
   // Handle filter changes
   const handleFilterChange = (name, value) => {
@@ -150,6 +172,62 @@ export default function JobsPage() {
     { value: 'freelance', label: 'Freelance' },
     { value: 'internship', label: 'Internship' }
   ];
+
+  const openApplyModal = (job) => {
+    setSelectedJob(job);
+    setShowApplyModal(true);
+    setCvFile(null);
+    setCoverLetter('');
+    setApplyError('');
+    setApplySuccess('');
+  };
+
+  const closeApplyModal = () => {
+    setShowApplyModal(false);
+    setSelectedJob(null);
+    setCvFile(null);
+    setCoverLetter('');
+    setApplyError('');
+    setApplySuccess('');
+  };
+
+  const handleCvChange = (e) => {
+    setCvFile(e.target.files[0]);
+  };
+
+  const handleApplySubmit = async (e) => {
+    e.preventDefault();
+    if (!cvFile) {
+      setApplyError('Please upload your CV.');
+      return;
+    }
+    setApplyLoading(true);
+    setApplyError('');
+    setApplySuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('jobId', selectedJob._id);
+      formData.append('coverLetter', coverLetter);
+      formData.append('cv', cvFile);
+      // Send application
+      const res = await fetch('http://localhost:5000/api/applications', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user?.token || token}`
+        },
+        body: formData
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Failed to apply');
+      setApplySuccess('Application submitted successfully!');
+      setAppliedJobs(prev => [...prev, selectedJob._id]);
+      setTimeout(() => closeApplyModal(), 2000);
+    } catch (err) {
+      setApplyError(err.message);
+    } finally {
+      setApplyLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -590,222 +668,72 @@ export default function JobsPage() {
             )}
 
             {/* Jobs List */}
-            {!loading && jobs.length === 0 && !error && (
-              <div style={{
-                textAlign: 'center',
-                padding: '3rem',
-                color: 'var(--text-muted)'
-              }}>
+            {jobs.length === 0 && !loading && (
+              <div className="empty-state">
                 <Briefcase size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <h3 style={{ marginBottom: '0.5rem' }}>No jobs found</h3>
-                <p>Try adjusting your filters or search terms</p>
+                <h3>No jobs found</h3>
+                <p>Try adjusting your filters or search terms.</p>
               </div>
             )}
 
             {!loading && jobs.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {jobs.map((job) => (
+              <div className="jobs-grid">
+                {jobs.map(job => (
                   <div
                     key={job._id}
-                    style={{
-                      background: 'var(--card-bg)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid var(--card-border)',
-                      borderRadius: '16px',
-                      padding: '1.5rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      position: 'relative'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 10px 30px var(--box-shadow)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }}
+                    className={`job-card${job.companyName === filters.search ? ' company-highlight' : ''}`}
                     onClick={() => navigate(`/jobs/${job._id}`)}
+                    style={{ cursor: 'pointer' }}
                   >
+                    {/* Company Logo/Initials */}
+                    <div className="company-logo-circle">
+                      {job.companyLogo ? (
+                        <img src={job.companyLogo} alt={job.companyName} />
+                      ) : (
+                        <span>{job.companyName?.[0] || '?'}</span>
+                      )}
+                    </div>
                     {/* Urgent Badge */}
                     {job.isUrgent && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '1rem',
-                        right: '1rem',
-                        background: 'linear-gradient(45deg, #ef4444, #dc2626)',
-                        color: 'white',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '20px',
-                        fontSize: '0.75rem',
-                        fontWeight: 'bold'
-                      }}>
-                        URGENT
-                      </div>
+                      <div className="urgent-badge">URGENT</div>
                     )}
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr auto',
-                      gap: '1rem',
-                      alignItems: 'start'
-                    }}>
-                      <div>
-                        {/* Job Title and Company */}
-                        <h3 style={{
-                          fontSize: '1.25rem',
-                          fontWeight: 'bold',
-                          color: 'var(--text-light)',
-                          marginBottom: '0.5rem'
-                        }}>
-                          {job.jobTitle}
-                        </h3>
-                        <p style={{
-                          color: 'var(--gold-light)',
-                          fontWeight: '500',
-                          marginBottom: '1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}>
-                          <Building size={16} />
-                          {job.companyName}
-                        </p>
-
-                        {/* Job Details */}
-                        <div style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: '1rem',
-                          marginBottom: '1rem'
-                        }}>
-                          <span style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            color: 'var(--text-muted)',
-                            fontSize: '0.9rem'
-                          }}>
-                            <MapPin size={14} />
-                            {job.jobLocation}
-                            {job.isRemote && (
-                              <span style={{
-                                background: 'var(--gold-light)',
-                                color: '#0f2027',
-                                padding: '0.125rem 0.5rem',
-                                borderRadius: '12px',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                marginLeft: '0.5rem'
-                              }}>
-                                Remote
-                              </span>
-                            )}
-                          </span>
-                          <span style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            color: 'var(--text-muted)',
-                            fontSize: '0.9rem'
-                          }}>
-                            <Clock size={14} />
-                            {job.jobType}
-                          </span>
-                          <span style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.25rem',
-                            color: 'var(--text-muted)',
-                            fontSize: '0.9rem'
-                          }}>
-                            <DollarSign size={14} />
-                            {formatSalary(job)}
-                          </span>
+                    {/* Job Info */}
+                    <div className="job-info">
+                      <h3 className="job-title">{job.jobTitle}</h3>
+                      <div className="job-meta">
+                        <span className="job-company"><Building size={16} /> {job.companyName}</span>
+                        <span className="job-location"><MapPin size={14} /> {job.jobLocation} {job.isRemote && <span className="remote-badge">Remote</span>}</span>
+                        <span className="job-type"><Clock size={14} /> {job.jobType}</span>
+                        <span className="job-salary"><DollarSign size={14} /> {formatSalary(job)}</span>
+                      </div>
+                      <p className="job-desc">{job.jobDescription.substring(0, 120)}...</p>
+                      {job.requiredSkills && job.requiredSkills.length > 0 && (
+                        <div className="job-skills">
+                          {job.requiredSkills.slice(0, 3).map((skill, idx) => (
+                            <span className="skill-tag" key={idx}>{skill}</span>
+                          ))}
+                          {job.requiredSkills.length > 3 && (
+                            <span className="more-skills">+{job.requiredSkills.length - 3} more</span>
+                          )}
                         </div>
-
-                        {/* Job Description Preview */}
-                        <p style={{
-                          color: 'var(--text-muted)',
-                          fontSize: '0.9rem',
-                          lineHeight: '1.5',
-                          marginBottom: '1rem'
-                        }}>
-                          {job.jobDescription.substring(0, 150)}...
-                        </p>
-
-                        {/* Skills */}
-                        {job.requiredSkills && job.requiredSkills.length > 0 && (
-                          <div style={{
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: '0.5rem',
-                            marginBottom: '1rem'
-                          }}>
-                            {job.requiredSkills.slice(0, 3).map((skill, index) => (
-                              <span
-                                key={index}
-                                style={{
-                                  background: 'var(--highlight-bg)',
-                                  color: 'var(--text-light)',
-                                  padding: '0.25rem 0.75rem',
-                                  borderRadius: '20px',
-                                  fontSize: '0.8rem',
-                                  border: '1px solid var(--card-border)'
-                                }}
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                            {job.requiredSkills.length > 3 && (
-                              <span style={{
-                                color: 'var(--text-muted)',
-                                fontSize: '0.8rem',
-                                padding: '0.25rem 0.75rem'
-                              }}>
-                                +{job.requiredSkills.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Job Stats */}
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '0.5rem',
-                        minWidth: '100px'
-                      }}>
-                        <span style={{
-                          color: 'var(--text-muted)',
-                          fontSize: '0.8rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
-                        }}>
-                          <Eye size={12} />
-                          {job.totalViews} views
-                        </span>
-                        <span style={{
-                          color: 'var(--text-muted)',
-                          fontSize: '0.8rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.25rem'
-                        }}>
-                          <Users size={12} />
-                          {job.totalApplications} applications
-                        </span>
-                        <span style={{
-                          color: 'var(--text-muted)',
-                          fontSize: '0.8rem'
-                        }}>
-                          {formatJobAge(job.createdAt)}
-                        </span>
-                      </div>
+                      )}
                     </div>
+                    {/* Job Stats */}
+                    <div className="job-stats">
+                      <span><Eye size={12} /> {job.totalViews} views</span>
+                      <span><Users size={12} /> {job.totalApplications} apps</span>
+                      <span>{formatJobAge(job.createdAt)}</span>
+                    </div>
+                    {/* Apply Button */}
+                    <button
+                      type="button"
+                      disabled={appliedJobs.includes(job._id) || !user || user.userType !== 'jobseeker'}
+                      onClick={e => { e.stopPropagation(); openApplyModal(job); }}
+                      className="apply-btn"
+                      style={{ marginTop: '0.5rem' }}
+                    >
+                      {appliedJobs.includes(job._id) ? 'Applied' : 'Apply'}
+                    </button>
                   </div>
                 ))}
               </div>
@@ -892,6 +820,40 @@ export default function JobsPage() {
           </div>
         </div>
       </main>
+
+      {/* Apply Modal */}
+      {showApplyModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <button onClick={closeApplyModal} className="modal-close">&times;</button>
+            <h2>Apply for: {selectedJob?.jobTitle}</h2>
+            <form onSubmit={handleApplySubmit}>
+              <div>
+                <label>Upload CV (PDF/DOC):</label>
+                <input type="file" accept=".pdf,.doc,.docx" onChange={handleCvChange} required />
+              </div>
+              <div>
+                <label>Cover Letter (optional):</label>
+                <textarea
+                  value={coverLetter}
+                  onChange={e => setCoverLetter(e.target.value)}
+                  rows={4}
+                  placeholder="Write a short message..."
+                />
+              </div>
+              {applyError && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{applyError}</div>}
+              {applySuccess && <div style={{ color: '#4ade80', marginBottom: '0.5rem' }}>{applySuccess}</div>}
+              <button
+                type="submit"
+                disabled={applyLoading}
+                className="apply-btn"
+              >
+                {applyLoading ? 'Submitting...' : 'Submit Application'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes spin {

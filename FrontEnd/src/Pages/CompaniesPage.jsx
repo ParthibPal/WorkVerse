@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Users, Star, Globe, Calendar, Filter, Grid, List, Award, TrendingUp, Clock, Building, ArrowRight, ChevronDown, Heart, Share2, Bookmark, Briefcase } from 'lucide-react';
 import Navbar from '../Components/Navbar';
 import Footer from '../Components/Footer';
+import { useNavigate } from 'react-router-dom';
 
 const CompaniesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,7 +11,6 @@ const CompaniesPage = () => {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('featured');
-  const [isLoaded, setIsLoaded] = useState(false);
   const [savedCompanies, setSavedCompanies] = useState(new Set());
   
   // New state for dynamic data
@@ -24,6 +24,8 @@ const CompaniesPage = () => {
     hasNext: false,
     hasPrev: false
   });
+
+  const navigate = useNavigate();
 
   // Fetch companies from API
   const fetchCompanies = async () => {
@@ -67,10 +69,6 @@ const CompaniesPage = () => {
     fetchCompanies();
   }, [searchTerm, selectedIndustry, selectedSize, selectedLocation, sortBy, pagination.currentPage]);
 
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
   // Format salary range for display
   const formatSalaryRange = (company) => {
     if (!company.salaryRange || (!company.salaryRange.min && !company.salaryRange.max)) {
@@ -104,31 +102,6 @@ const CompaniesPage = () => {
     { value: 'jobs', label: 'Most Jobs' },
     { value: 'trending', label: 'Trending' }
   ];
-
-  const filteredAndSortedCompanies = companies
-    .filter(company => {
-      const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           company.industry.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesIndustry = selectedIndustry === 'all' || company.industry === selectedIndustry;
-      const matchesSize = selectedSize === 'all' || company.size === selectedSize;
-      const matchesLocation = selectedLocation === 'all' || company.location === selectedLocation;
-      
-      return matchesSearch && matchesIndustry && matchesSize && matchesLocation;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'rating':
-          return b.rating - a.rating;
-        case 'jobs':
-          return b.openJobs - a.openJobs;
-        case 'trending':
-          return (b.trending ? 1 : 0) - (a.trending ? 1 : 0);
-        case 'featured':
-        default:
-          return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-      }
-    });
 
   const toggleSaveCompany = (companyId) => {
     const newSaved = new Set(savedCompanies);
@@ -231,9 +204,11 @@ const CompaniesPage = () => {
 
       {/* Action buttons */}
       <div className="card-actions">
-        <button className="view-jobs-btn">
+        <button
+          className="apply-btn"
+          onClick={() => navigate(`/jobs?company=${encodeURIComponent(company.name)}`)}
+        >
           View Jobs
-          <ArrowRight size={16} />
         </button>
         <button className="view-company-btn">
           View Company
@@ -858,7 +833,7 @@ const CompaniesPage = () => {
           gap: 12px;
         }
 
-        .view-jobs-btn,
+        .apply-btn,
         .view-company-btn {
           flex: 1;
           padding: 12px 20px;
@@ -874,12 +849,12 @@ const CompaniesPage = () => {
           gap: 8px;
         }
 
-        .view-jobs-btn {
+        .apply-btn {
           background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
           color: #0f2027;
         }
 
-        .view-jobs-btn:hover {
+        .apply-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 8px 20px rgba(252, 210, 159, 0.3);
         }

@@ -4,13 +4,22 @@ import {useNavigate} from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
-  const { user, getUserType, logout } = useAuth();
+  const { user, getUserType, logout, token } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   
   // Get user role from context
   const userRole = getUserType();
   const isAdmin = user?.isAdmin || false;
+  
+  // Real recruiter jobs and applicants
+  const [recruiterJobs, setRecruiterJobs] = useState([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState('');
+  const [jobApplicants, setJobApplicants] = useState({});
+  const [selectedJobId, setSelectedJobId] = useState(null);
+  const [actionLoading, setActionLoading] = useState({});
+  const [actionError, setActionError] = useState({});
   
   useEffect(() => {
     const checkMobile = () => {
@@ -50,19 +59,104 @@ const Dashboard = () => {
     { id: 4, title: 'Data Scientist', company: 'DataHub', recruiter: 'Emma Davis', applications: 23, status: 'Active' }
   ];
 
-  const candidates = [
-    { id: 1, name: 'Alex Thompson', role: 'Frontend Developer', experience: '3 years', skills: 'React, TypeScript', status: 'Available' },
-    { id: 2, name: 'Maria Garcia', role: 'UX Designer', experience: '5 years', skills: 'Figma, Sketch', status: 'Interviewing' },
-    { id: 3, name: 'David Chen', role: 'Full Stack Developer', experience: '4 years', skills: 'Node.js, Python', status: 'Available' },
-    { id: 4, name: 'Lisa Johnson', role: 'Product Manager', experience: '6 years', skills: 'Agile, Analytics', status: 'Hired' }
-  ];
-
   const users = [
     { id: 1, name: 'John Smith', email: 'john@techcorp.com', role: 'Recruiter', company: 'TechCorp', status: 'Active' },
     { id: 2, name: 'Sarah Wilson', email: 'sarah@creative.com', role: 'Recruiter', company: 'CreativeLab', status: 'Active' },
     { id: 3, name: 'Alex Thompson', email: 'alex@email.com', role: 'Candidate', company: '-', status: 'Active' },
     { id: 4, name: 'Maria Garcia', email: 'maria@email.com', role: 'Candidate', company: '-', status: 'Active' }
   ];
+
+  // Fetch recruiter's jobs on mount (if recruiter)
+  useEffect(() => {
+    if (userRole === 'employer') {
+      fetchRecruiterJobs();
+    }
+    // eslint-disable-next-line
+  }, [userRole]);
+
+  const fetchRecruiterJobs = async () => {
+    setJobsLoading(true);
+    setJobsError('');
+    try {
+      const res = await fetch('http://localhost:5000/api/jobs/employer/my-jobs', {
+        headers: { 'Authorization': `Bearer ${user?.token || token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch jobs');
+      const data = await res.json();
+      setRecruiterJobs(data.data.jobs || []);
+      if (data.data.jobs && data.data.jobs.length > 0) {
+        setSelectedJobId(data.data.jobs[0]._id);
+      }
+    } catch (err) {
+      setJobsError(err.message);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  // Fetch applicants for a job when the recruiterJobs are loaded
+  useEffect(() => {
+    if (selectedJobId) {
+      fetchApplicantsForJob(selectedJobId);
+    }
+    // eslint-disable-next-line
+  }, [selectedJobId]);
+
+  const fetchApplicantsForJob = async (jobId) => {
+    setJobApplicants(prev => ({ ...prev, [jobId]: { loading: true, error: '', applicants: [] } }));
+    try {
+      const res = await fetch(`http://localhost:5000/api/applications/job/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${user?.token || token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch applicants');
+      const data = await res.json();
+      setJobApplicants(prev => ({ ...prev, [jobId]: { loading: false, error: '', applicants: data.data.applications || [] } }));
+    } catch (err) {
+      setJobApplicants(prev => ({ ...prev, [jobId]: { loading: false, error: err.message, applicants: [] } }));
+    }
+  };
+
+  // Handler to delete a job
+  const handleDeleteJob = async (jobId) => {
+    if (!window.confirm('Are you sure you want to delete this job?')) return;
+    setActionLoading(prev => ({ ...prev, [jobId]: true }));
+    setActionError(prev => ({ ...prev, [jobId]: '' }));
+    try {
+      const res = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${user?.token || token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete job');
+      await fetchRecruiterJobs();
+    } catch (err) {
+      setActionError(prev => ({ ...prev, [jobId]: err.message }));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [jobId]: false }));
+    }
+  };
+
+  // Handler to update job status
+  const handleUpdateStatus = async (jobId, newStatus) => {
+    setActionLoading(prev => ({ ...prev, [jobId]: true }));
+    setActionError(prev => ({ ...prev, [jobId]: '' }));
+    try {
+      const res = await fetch(`http://localhost:5000/api/jobs/${jobId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token || token}`
+        },
+        body: JSON.stringify({ jobStatus: newStatus })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to update status');
+      await fetchRecruiterJobs(); // Refresh jobs
+    } catch (err) {
+      setActionError(prev => ({ ...prev, [jobId]: err.message }));
+    } finally {
+      setActionLoading(prev => ({ ...prev, [jobId]: false }));
+    }
+  };
 
   const StatCard = ({ stat, index }) => (
     <div
@@ -408,25 +502,15 @@ const Dashboard = () => {
 
   const RecruiterView = () => (
     <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
-      {/* Stats Grid */}
+      {/* Stats Grid (optional, can use real stats if available) */}
+      {/* ... keep your StatCard and stats grid if you want ... */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2rem'
-      }}>
-        {recruiterStats.map((stat, index) => (
-          <StatCard key={index} stat={stat} index={index} />
-        ))}
-      </div>
-
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', 
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
         gap: '1.5rem',
         width: '100%'
       }}>
-        {/* My Job Posts */}
+        {/* My Job Posts (left) */}
         <div style={{
           background: 'rgba(255, 255, 255, 0.1)',
           backdropFilter: 'blur(20px)',
@@ -434,184 +518,63 @@ const Dashboard = () => {
           borderRadius: '16px',
           padding: '1.5rem',
           width: '100%',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          minHeight: '350px'
         }}>
-          <h3 style={{ 
-            margin: '0 0 1.5rem', 
-            fontSize: '1.25rem', 
+          <h3 style={{
+            margin: '0 0 1.5rem',
+            fontSize: '1.25rem',
             fontWeight: '700',
             color: '#f5f5f5'
           }}>
             My Job Posts
           </h3>
-          <div style={{ 
-            maxHeight: '400px', 
-            overflowY: 'auto',
-            paddingRight: '0.5rem'
-          }}>
-            {jobPosts.slice(0, 3).map((job) => (
-              <div key={job.id} style={{
-                background: '#2c3e50',
-                borderRadius: '12px',
-                padding: '1rem',
-                marginBottom: '0.75rem',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(44, 62, 80, 0.8)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#2c3e50';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start',
-                  gap: '1rem',
-                  flexWrap: isMobile ? 'wrap' : 'nowrap'
-                }}>
-                  <div style={{ flex: 1, minWidth: '0' }}>
-                    <h4 style={{ 
-                      margin: '0 0 0.5rem 0', 
-                      fontSize: '1rem', 
-                      fontWeight: '600',
-                      color: '#f5f5f5'
-                    }}>
-                      {job.title}
-                    </h4>
-                    <p style={{ 
-                      margin: '0 0 0.25rem 0', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc'
-                    }}>
-                      {job.company}
-                    </p>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '1rem',
-                      flexWrap: 'wrap'
-                    }}>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: '#fcd29f',
-                        background: 'rgba(252, 210, 159, 0.15)',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '6px',
-                        fontWeight: '500'
-                      }}>
-                        {job.applications} applications
-                      </span>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: job.status === 'Active' ? '#4ade80' : '#fcd29f',
-                        background: job.status === 'Active' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(252, 210, 159, 0.15)',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '6px',
-                        fontWeight: '500'
-                      }}>
-                        {job.status}
-                      </span>
-                    </div>
-                  </div>
-                  <button style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#ccc',
+          {jobsLoading ? (
+            <div>Loading jobs...</div>
+          ) : jobsError ? (
+            <div style={{ color: 'red' }}>{jobsError}</div>
+          ) : recruiterJobs.length === 0 ? (
+            <div>No jobs found.</div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              {recruiterJobs.map((job) => (
+                <div
+                  key={job._id}
+                  style={{
+                    background: selectedJobId === job._id ? '#2c3e50' : 'rgba(44, 62, 80, 0.8)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    marginBottom: '0.75rem',
+                    border: selectedJobId === job._id ? '2px solid #fcd29f' : '1px solid rgba(255, 255, 255, 0.2)',
                     cursor: 'pointer',
-                    padding: '0.25rem',
-                    borderRadius: '4px',
                     transition: 'all 0.3s ease'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#fcd29f';
-                    e.currentTarget.style.background = 'rgba(252, 210, 159, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = '#ccc';
-                    e.currentTarget.style.background = 'none';
-                  }}>
-                    <MoreVertical size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Candidates */}
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}>
-          <h3 style={{ 
-            margin: '0 0 1.5rem', 
-            fontSize: '1.25rem', 
-            fontWeight: '700',
-            color: '#f5f5f5'
-          }}>
-            Top Candidates
-          </h3>
-          {isMobile ? (
-            <div style={{ 
-              maxHeight: '400px', 
-              overflowY: 'auto',
-              paddingRight: '0.5rem'
-            }}>
-              {candidates.map((candidate) => (
-                <div key={candidate.id} style={{
-                  background: '#2c3e50',
-                  borderRadius: '12px',
-                  padding: '1rem',
-                  marginBottom: '0.75rem',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(44, 62, 80, 0.8)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#2c3e50';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                  onClick={() => setSelectedJobId(job._id)}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'flex-start',
                     gap: '1rem',
-                    flexWrap: 'wrap'
+                    flexWrap: isMobile ? 'wrap' : 'nowrap'
                   }}>
                     <div style={{ flex: 1, minWidth: '0' }}>
-                      <h4 style={{ 
-                        margin: '0 0 0.5rem 0', 
-                        fontSize: '1rem', 
+                      <h4 style={{
+                        margin: '0 0 0.5rem 0',
+                        fontSize: '1rem',
                         fontWeight: '600',
                         color: '#f5f5f5'
-                      }}>
-                        {candidate.name}
-                      </h4>
-                      <p style={{ 
-                        margin: '0 0 0.25rem 0', 
-                        fontSize: '0.875rem', 
+                      }}>{job.jobTitle}</h4>
+                      <p style={{
+                        margin: '0 0 0.25rem 0',
+                        fontSize: '0.875rem',
                         color: '#ccc'
-                      }}>
-                        {candidate.role} • {candidate.experience}
-                      </p>
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      }}>{job.companyName}</p>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: '1rem',
-                        flexWrap: 'wrap',
-                        marginTop: '0.5rem'
+                        flexWrap: 'wrap'
                       }}>
                         <span style={{
                           fontSize: '0.75rem',
@@ -620,215 +583,183 @@ const Dashboard = () => {
                           padding: '0.25rem 0.5rem',
                           borderRadius: '6px',
                           fontWeight: '500'
-                        }}>
-                          {candidate.skills}
-                        </span>
+                        }}>{job.jobStatus}</span>
                         <span style={{
                           fontSize: '0.75rem',
-                          color: candidate.status === 'Available' ? '#4ade80' : 
-                                 candidate.status === 'Hired' ? '#fcd29f' : '#60a5fa',
-                          background: candidate.status === 'Available' ? 'rgba(74, 222, 128, 0.15)' : 
-                                     candidate.status === 'Hired' ? 'rgba(252, 210, 159, 0.15)' : 'rgba(96, 165, 250, 0.15)',
+                          color: '#4ade80',
+                          background: 'rgba(74, 222, 128, 0.15)',
                           padding: '0.25rem 0.5rem',
                           borderRadius: '6px',
                           fontWeight: '500'
-                        }}>
-                          {candidate.status}
-                        </span>
+                        }}>{job.totalApplications || 0} applications</span>
                       </div>
                     </div>
-                    <button style={{
-                      background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
-                      border: 'none',
-                      borderRadius: '10px',
-                      padding: '0.5rem 1rem',
-                      color: '#000',
-                      fontSize: '0.8rem',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'scale(1)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}>
-                      <Download size={14} />
-                      CV
-                    </button>
                   </div>
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                    {/* Activate/Inactive Button */}
+                    {job.jobStatus === 'paused' && (
+                      <button
+                        style={{
+                          background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.4rem 0.9rem',
+                          color: '#000',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          opacity: actionLoading[job._id] ? 0.7 : 1
+                        }}
+                        disabled={actionLoading[job._id]}
+                        onClick={() => handleUpdateStatus(job._id, 'active')}
+                      >
+                        {actionLoading[job._id] ? 'Activating...' : 'Activate'}
+                      </button>
+                    )}
+                    {job.jobStatus === 'active' && (
+                      <button
+                        style={{
+                          background: 'rgba(231, 76, 60, 0.15)',
+                          border: '1px solid #e74c3c',
+                          borderRadius: '8px',
+                          padding: '0.4rem 0.9rem',
+                          color: '#e74c3c',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          opacity: actionLoading[job._id] ? 0.7 : 1
+                        }}
+                        disabled={actionLoading[job._id]}
+                        onClick={() => handleUpdateStatus(job._id, 'paused')}
+                      >
+                        {actionLoading[job._id] ? 'Pausing...' : 'Mark Inactive'}
+                      </button>
+                    )}
+                    {/* Activate button for closed jobs */}
+                    {job.jobStatus === 'closed' && (
+                      <button
+                        style={{
+                          background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.4rem 0.9rem',
+                          color: '#000',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          opacity: actionLoading[job._id] ? 0.7 : 1
+                        }}
+                        disabled={actionLoading[job._id]}
+                        onClick={() => handleUpdateStatus(job._id, 'active')}
+                      >
+                        {actionLoading[job._id] ? 'Activating...' : 'Activate'}
+                      </button>
+                    )}
+                    {/* Position Filled Button (always show unless already closed) */}
+                    {job.jobStatus !== 'closed' && (
+                      <button
+                        style={{
+                          background: 'linear-gradient(to right, #b6b6b6, #e0c07c)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.4rem 0.9rem',
+                          color: '#333',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          opacity: actionLoading[job._id] ? 0.7 : 1
+                        }}
+                        disabled={actionLoading[job._id]}
+                        onClick={() => handleUpdateStatus(job._id, 'closed')}
+                      >
+                        {actionLoading[job._id] ? 'Filling...' : 'Position Filled'}
+                      </button>
+                    )}
+                  </div>
+                  {actionError[job._id] && <div style={{ color: 'red', marginTop: '0.3rem', fontSize: '0.85rem' }}>{actionError[job._id]}</div>}
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ 
-              maxHeight: '400px', 
-              overflowY: 'auto',
-              paddingRight: '0.5rem'
-            }}>
-              <table style={{ 
-                width: '100%', 
-                borderCollapse: 'collapse',
-                fontSize: '0.875rem'
-              }}>
-                <thead>
-                  <tr style={{
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-                  }}>
-                    <th style={{ 
-                      padding: '1rem', 
-                      textAlign: 'left', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc',
-                      fontWeight: '600'
-                    }}>
-                      Name
-                    </th>
-                    <th style={{ 
-                      padding: '1rem', 
-                      textAlign: 'left', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc',
-                      fontWeight: '600'
-                    }}>
-                      Role
-                    </th>
-                    <th style={{ 
-                      padding: '1rem', 
-                      textAlign: 'left', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc',
-                      fontWeight: '600'
-                    }}>
-                      Experience
-                    </th>
-                    <th style={{ 
-                      padding: '1rem', 
-                      textAlign: 'left', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc',
-                      fontWeight: '600'
-                    }}>
-                      Skills
-                    </th>
-                    <th style={{ 
-                      padding: '1rem', 
-                      textAlign: 'left', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc',
-                      fontWeight: '600'
-                    }}>
-                      Status
-                    </th>
-                    <th style={{ 
-                      padding: '1rem', 
-                      textAlign: 'center', 
-                      fontSize: '0.875rem', 
-                      color: '#ccc',
-                      fontWeight: '600'
-                    }}>
-                      CV
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {candidates.map((candidate) => (
-                    <tr key={candidate.id} style={{
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#2c3e50';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}>
-                      <td style={{ padding: '1rem' }}>
-                        <div style={{ 
-                          fontWeight: '600', 
-                          fontSize: '0.9rem',
-                          color: '#f5f5f5'
-                        }}>
-                          {candidate.name}
-                        </div>
-                      </td>
-                      <td style={{ 
-                        padding: '1rem', 
-                        fontSize: '0.875rem', 
-                        color: '#ccc'
-                      }}>
-                        {candidate.role}
-                      </td>
-                      <td style={{ 
-                        padding: '1rem', 
-                        fontSize: '0.875rem', 
-                        color: '#ccc'
-                      }}>
-                        {candidate.experience}
-                      </td>
-                      <td style={{ 
-                        padding: '1rem', 
-                        fontSize: '0.875rem', 
-                        color: '#fcd29f',
-                        fontWeight: '500'
-                      }}>
-                        {candidate.skills}
-                      </td>
-                      <td style={{ padding: '1rem' }}>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: candidate.status === 'Available' ? '#4ade80' : 
-                                 candidate.status === 'Hired' ? '#fcd29f' : '#60a5fa',
-                          background: candidate.status === 'Available' ? 'rgba(74, 222, 128, 0.15)' : 
-                                     candidate.status === 'Hired' ? 'rgba(252, 210, 159, 0.15)' : 'rgba(96, 165, 250, 0.15)',
-                          padding: '0.4rem 0.8rem',
-                          borderRadius: '8px',
-                          fontWeight: '600'
-                        }}>
-                          {candidate.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <button style={{
-                          background: 'linear-gradient(to right, #fbd7a1, #c9953e)',
-                          border: 'none',
-                          borderRadius: '10px',
-                          padding: '0.5rem 1rem',
-                          color: '#000',
-                          fontSize: '0.8rem',
-                          fontWeight: '700',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          transition: 'all 0.3s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.05)';
-                          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}>
-                          <Download size={14} />
-                          CV
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           )}
         </div>
+        {/* Applicants for selected job (right) */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '16px',
+          padding: '1.5rem',
+          width: '100%',
+          boxSizing: 'border-box',
+          minHeight: '350px'
+        }}>
+          <h3 style={{
+            margin: '0 0 1.5rem',
+            fontSize: '1.25rem',
+            fontWeight: '700',
+            color: '#f5f5f5'
+          }}>
+            Applicants
+          </h3>
+          {!selectedJobId ? (
+            <div>Select a job to view applicants.</div>
+          ) : jobApplicants[selectedJobId]?.loading ? (
+            <div>Loading applicants...</div>
+          ) : jobApplicants[selectedJobId]?.error ? (
+            <div style={{ color: 'red' }}>{jobApplicants[selectedJobId].error}</div>
+          ) : (jobApplicants[selectedJobId]?.applicants?.length === 0 ? (
+            <div style={{ color: '#aaa' }}>No applicants for this job.</div>
+          ) : (
+            <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              {(jobApplicants[selectedJobId]?.applicants || []).map((app) => (
+                <div key={app._id} style={{
+                  background: '#2c3e50',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  marginBottom: '0.7rem',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.3rem',
+                  transition: 'box-shadow 0.2s'
+                }}>
+                  <div style={{ fontWeight: '600', fontSize: '0.95rem', color: '#4ade80' }}>{app.applicantName}</div>
+                  <div style={{ color: '#ccc', fontSize: '0.9rem' }}>{app.applicantEmail}</div>
+                  {app.cvFile?.fileUrl && (
+                    <a href={app.cvFile.fileUrl} target="_blank" rel="noopener noreferrer" style={{
+                      color: '#fcd29f',
+                      textDecoration: 'underline',
+                      fontSize: '0.9rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      marginTop: '0.2rem'
+                    }}>
+                      <Download size={14} />
+                      Download CV
+                    </a>
+                  )}
+                  <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Status: {app.status}</div>
+                  <div style={{ color: '#aaa', fontSize: '0.85rem' }}>Applied: {new Date(app.appliedAt).toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
+    </div>
+  );
+
+  const JobseekerView = () => (
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h2>Welcome to your Dashboard!</h2>
+      <p>Here you will see your job applications, saved jobs, and personalized recommendations soon.</p>
+      <p>Stay tuned for more features!</p>
     </div>
   );
 

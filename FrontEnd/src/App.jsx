@@ -16,6 +16,9 @@ import PostJobPage from './Pages/PostJobPage.jsx';
 import CompaniesPage from './Pages/CompaniesPage.jsx';
 import CompanyRegistrationPage from './Pages/CompanyRegistrationPage.jsx';
 import ProfilePage from './Pages/ProfilePage.jsx';
+import MyJobsPage from './Pages/MyJobsPage.jsx';
+import JobsPage from './Pages/JobsPage.jsx';
+import JobDetailPage from './Pages/JobDetailPage.jsx';
 
 /**
  * App Component
@@ -82,6 +85,33 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/my-jobs" 
+          element={
+            <ProtectedRoute requiredUserType="employer">
+              <MyJobsPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/jobs" 
+          element={
+            <ProtectedRoute>
+              <JobsPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/jobs/:jobId" 
+          element={
+            <ProtectedRoute>
+              <JobDetailPage />
             </ProtectedRoute>
           } 
         />

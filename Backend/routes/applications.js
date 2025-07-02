@@ -5,12 +5,26 @@ const Job = require('../models/Job');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const employerMiddleware = require('../middleware/employerMiddleware');
+const multer = require('multer');
+const path = require('path');
+
+// Multer storage for CV uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads/cv'));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'cv-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
 
 /**
  * POST /api/applications
  * Apply for a job
  */
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, upload.single('cv'), async (req, res) => {
   try {
     const { jobId, coverLetter } = req.body;
 
@@ -82,6 +96,18 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    // Handle CV file
+    let cvFile = null;
+    if (req.file) {
+      cvFile = {
+        fileName: req.file.filename,
+        fileUrl: `/uploads/cv/${req.file.filename}`,
+        fileSize: req.file.size
+      };
+    } else if (user.cvFile) {
+      cvFile = user.cvFile;
+    }
+
     // Create new application
     const application = new JobApplication({
       jobId,
@@ -91,7 +117,7 @@ router.post('/', authMiddleware, async (req, res) => {
       applicantName: `${user.firstName} ${user.lastName}`,
       applicantEmail: req.user.email,
       coverLetter,
-      cvFile: user.cvFile
+      cvFile
     });
 
     await application.save();
@@ -204,7 +230,7 @@ router.get('/job/:jobId', authMiddleware, employerMiddleware, async (req, res) =
       .sort(sortQuery)
       .skip(skip)
       .limit(parseInt(limit))
-      .populate('applicantId', 'name email');
+      .populate('applicantId');
 
     const total = await JobApplication.countDocuments(query);
 

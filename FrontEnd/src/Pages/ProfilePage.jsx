@@ -19,6 +19,8 @@ const ProfilePage = () => {
   const [cvUploading, setCvUploading] = useState(false);
   const [cvFile, setCvFile] = useState(null);
   const fileInputRef = useRef();
+  const [myJobs, setMyJobs] = useState([]);
+  const [jobApplicants, setJobApplicants] = useState({});
 
   // Fetch profile on mount
   useEffect(() => {
@@ -27,6 +29,13 @@ const ProfilePage = () => {
       return;
     }
     fetchProfile();
+  }, [user]);
+
+  // Fetch jobs for recruiters
+  useEffect(() => {
+    if (user && user.userType === 'employer') {
+      fetchMyJobs();
+    }
   }, [user]);
 
   const fetchProfile = async () => {
@@ -160,6 +169,36 @@ const ProfilePage = () => {
 
   const handleBack = () => {
     navigate(-1); // Go back to previous page
+  };
+
+  const fetchMyJobs = async () => {
+    try {
+      const res = await fetch('/api/jobs/employer/my-jobs', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMyJobs(data.data.jobs);
+        // Fetch applicants for each job
+        data.data.jobs.forEach(job => fetchApplicantsForJob(job._id));
+      }
+    } catch (err) {
+      // Optionally handle error
+    }
+  };
+
+  const fetchApplicantsForJob = async (jobId) => {
+    try {
+      const res = await fetch(`/api/applications/job/${jobId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setJobApplicants(prev => ({ ...prev, [jobId]: data.data.applications }));
+      }
+    } catch (err) {
+      // Optionally handle error
+    }
   };
 
   if (loading) {
@@ -316,6 +355,38 @@ const ProfilePage = () => {
           )}
         </div>
       </form>
+      {user && user.userType === 'employer' && (
+        <div style={{ marginTop: 32 }}>
+          <h2 style={{ fontWeight: 700, fontSize: '1.5rem', marginBottom: 16 }}>My Posted Jobs & Applicants</h2>
+          {myJobs.length === 0 ? (
+            <div style={{ color: '#888' }}>You have not posted any jobs yet.</div>
+          ) : (
+            myJobs.map(job => (
+              <div key={job._id} style={{ marginBottom: 32, padding: 16, border: '1px solid #fcd29f', borderRadius: 8, background: 'rgba(252,210,159,0.05)' }}>
+                <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 8 }}>{job.jobTitle}</div>
+                <div style={{ color: '#888', marginBottom: 8 }}>{job.jobLocation} | {job.jobType}</div>
+                <div style={{ fontWeight: 500, marginBottom: 8 }}>Applicants:</div>
+                {jobApplicants[job._id] && jobApplicants[job._id].length > 0 ? (
+                  <ul style={{ paddingLeft: 20 }}>
+                    {jobApplicants[job._id].map(app => (
+                      <li key={app._id} style={{ marginBottom: 8 }}>
+                        <span style={{ fontWeight: 500 }}>{app.applicantId?.firstName} {app.applicantId?.lastName}</span>
+                        {app.applicantId?.email && <span style={{ color: '#888', marginLeft: 8 }}>({app.applicantId.email})</span>}
+                        {app.cvFile && app.cvFile.fileUrl && (
+                          <a href={app.cvFile.fileUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 12, color: '#2563eb', textDecoration: 'underline' }}>CV</a>
+                        )}
+                        <span style={{ color: '#888', marginLeft: 8 }}>Status: {app.status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div style={{ color: '#aaa' }}>No applicants yet.</div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

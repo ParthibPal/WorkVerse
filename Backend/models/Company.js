@@ -195,6 +195,7 @@ const companySchema = new mongoose.Schema({
 companySchema.index({ name: 'text', description: 'text', industry: 'text' });
 companySchema.index({ featured: 1, rating: -1 });
 companySchema.index({ industry: 1, location: 1 });
+companySchema.index({ name: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
 
 // Virtual for formatted salary range
 companySchema.virtual('formattedSalaryRange').get(function() {

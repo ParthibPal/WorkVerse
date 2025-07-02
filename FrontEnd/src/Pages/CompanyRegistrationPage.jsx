@@ -136,20 +136,21 @@ const CompanyRegistrationPage = () => {
 
       if (response.ok) {
         setSuccess(result.message);
+        setError('');
         setTimeout(() => {
-          // Navigate back to job posting if they came from there
           if (location.state?.prefillCompany) {
-            navigate('/postjob', { 
-              state: { 
+            navigate('/postjob', {
+              state: {
                 fromRegistration: true,
-                registeredCompany: result.data.company.name 
-              } 
+                registeredCompany: result.data.company.name
+              }
             });
           } else {
             navigate('/companies');
           }
         }, 3000);
       } else {
+        setSuccess('');
         setError(result.message || 'Failed to register company');
       }
     } catch (error) {
@@ -790,6 +791,17 @@ const CompanyRegistrationPage = () => {
               )}
             </div>
           </form>
+
+          {error && error.includes('already exists') && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ marginTop: '1rem' }}
+              onClick={() => navigate('/postjob', { state: { fromRegistration: true, registeredCompany: formData.name } })}
+            >
+              Go Back to Job Posting
+            </button>
+          )}
         </div>
       </div>
 

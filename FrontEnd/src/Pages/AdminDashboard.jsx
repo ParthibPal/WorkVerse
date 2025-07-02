@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
   Shield, 
@@ -37,7 +36,6 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [showPasswords, setShowPasswords] = useState({});
 
   /**
    * Fetch dashboard data on component mount
@@ -126,16 +124,6 @@ const AdminDashboard = () => {
   };
 
   /**
-   * Toggle password visibility for a specific user
-   */
-  const togglePasswordVisibility = (userId) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
-  };
-
-  /**
    * Handle admin logout
    */
   const handleLogout = () => {
@@ -155,19 +143,6 @@ const AdminDashboard = () => {
     return matchesSearch && matchesFilter;
   });
 
-  /**
-   * Animation variants
-   */
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   if (loading) {
     return (
       <div className="admin-loading">
@@ -182,12 +157,7 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard">
       {/* Header */}
-      <motion.header 
-        className="admin-header"
-        initial="hidden"
-        animate="visible"
-        variants={itemVariants}
-      >
+      <div className="admin-header">
         <div className="header-left">
           <Shield size={32} className="admin-icon" />
           <div>
@@ -201,28 +171,19 @@ const AdminDashboard = () => {
             Logout
           </button>
         </div>
-      </motion.header>
+      </div>
 
       {/* Error Display */}
       {error && (
-        <motion.div 
-          className="error-message"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
+        <div className="error-message">
           {error}
-        </motion.div>
+        </div>
       )}
 
       {/* Statistics Cards */}
       {dashboardData && (
-        <motion.div 
-          className="stats-grid"
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-        >
-          <motion.div className="stat-card" variants={itemVariants}>
+        <div className="stats-grid">
+          <div className="stat-card">
             <div className="stat-icon total-users">
               <Users size={24} />
             </div>
@@ -230,9 +191,9 @@ const AdminDashboard = () => {
               <h3>{dashboardData.stats.totalUsers}</h3>
               <p>Total Users</p>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div className="stat-card" variants={itemVariants}>
+          <div className="stat-card">
             <div className="stat-icon jobseekers">
               <UserCheck size={24} />
             </div>
@@ -240,9 +201,9 @@ const AdminDashboard = () => {
               <h3>{dashboardData.stats.totalJobseekers}</h3>
               <p>Job Seekers</p>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div className="stat-card" variants={itemVariants}>
+          <div className="stat-card">
             <div className="stat-icon employers">
               <Briefcase size={24} />
             </div>
@@ -250,9 +211,9 @@ const AdminDashboard = () => {
               <h3>{dashboardData.stats.totalEmployers}</h3>
               <p>Employers</p>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div className="stat-card" variants={itemVariants}>
+          <div className="stat-card">
             <div className="stat-icon admins">
               <Shield size={24} />
             </div>
@@ -260,17 +221,12 @@ const AdminDashboard = () => {
               <h3>{dashboardData.stats.totalAdmins}</h3>
               <p>Administrators</p>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
 
       {/* User Management Section */}
-      <motion.div 
-        className="user-management"
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-      >
+      <div className="user-management">
         <div className="section-header">
           <h2>User Management</h2>
           <div className="controls">
@@ -310,9 +266,8 @@ const AdminDashboard = () => {
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <motion.tr 
+                <tr 
                   key={user._id}
-                  variants={itemVariants}
                   style={{ cursor: 'pointer' }}
                 >
                   <td>{user.name}</td>
@@ -341,12 +296,12 @@ const AdminDashboard = () => {
                       </button>
                     </div>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

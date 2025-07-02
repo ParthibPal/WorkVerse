@@ -18,6 +18,16 @@ const JobPortalHomepage = () => {
     users: 0,
     success: 0
   });
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [cvFile, setCvFile] = useState(null);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [applyLoading, setApplyLoading] = useState(false);
+  const [applyError, setApplyError] = useState('');
+  const [applySuccess, setApplySuccess] = useState('');
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  
+  const navigate = useNavigate();
   
   // Fetch jobs from backend
   const fetchJobs = async () => {
@@ -164,6 +174,61 @@ const JobPortalHomepage = () => {
     { name: "Design", jobs: 1400, icon: "🎨" }
   ];
 
+  const openApplyModal = (job) => {
+    setSelectedJob(job);
+    setShowApplyModal(true);
+    setCvFile(null);
+    setCoverLetter('');
+    setApplyError('');
+    setApplySuccess('');
+  };
+
+  const closeApplyModal = () => {
+    setShowApplyModal(false);
+    setSelectedJob(null);
+    setCvFile(null);
+    setCoverLetter('');
+    setApplyError('');
+    setApplySuccess('');
+  };
+
+  const handleCvChange = (e) => {
+    setCvFile(e.target.files[0]);
+  };
+
+  const handleApplySubmit = async (e) => {
+    e.preventDefault();
+    if (!cvFile) {
+      setApplyError('Please upload your CV.');
+      return;
+    }
+    setApplyLoading(true);
+    setApplyError('');
+    setApplySuccess('');
+    try {
+      const formData = new FormData();
+      formData.append('jobId', selectedJob._id);
+      formData.append('coverLetter', coverLetter);
+      formData.append('cv', cvFile);
+      const res = await fetch('http://localhost:5000/api/applications', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Failed to apply');
+      setApplySuccess('Application submitted successfully!');
+      setAppliedJobs(prev => [...prev, selectedJob._id]);
+      setTimeout(() => closeApplyModal(), 2000);
+    } catch (err) {
+      setApplyError(err.message);
+    } finally {
+      setApplyLoading(false);
+    }
+  };
+
   return (
     <>
     <Navbar/>
@@ -309,8 +374,8 @@ const JobPortalHomepage = () => {
                       <Users size={14} />
                       {job.totalApplications || 0} applicants
                     </div>
-                    <button className="apply-btn">
-                      Apply Now
+                    <button className="apply-btn" onClick={() => openApplyModal(job)} disabled={appliedJobs.includes(job._id)}>
+                      {appliedJobs.includes(job._id) ? 'Applied' : 'Apply Now'}
                       <ArrowRight size={16} />
                     </button>
                   </div>
@@ -319,7 +384,7 @@ const JobPortalHomepage = () => {
             )}
           </div>
           <div className="section-footer">
-            <button className="btn-outline">View All Jobs</button>
+            <button className="btn-outline" onClick={() => navigate('/jobs')}>View All Jobs</button>
           </div>
         </div>
       </section>
@@ -447,6 +512,38 @@ const JobPortalHomepage = () => {
         </div>
       </footer>
     </div>
+    {showApplyModal && (
+      <div className="modal-overlay">
+        <div className="modal-content">
+          <button onClick={closeApplyModal} className="modal-close">&times;</button>
+          <h2>Apply for: {selectedJob?.jobTitle}</h2>
+          <form onSubmit={handleApplySubmit}>
+            <div>
+              <label>Upload CV (PDF/DOC):</label>
+              <input type="file" accept=".pdf,.doc,.docx" onChange={handleCvChange} required />
+            </div>
+            <div>
+              <label>Cover Letter (optional):</label>
+              <textarea
+                value={coverLetter}
+                onChange={e => setCoverLetter(e.target.value)}
+                rows={4}
+                placeholder="Write a short message..."
+              />
+            </div>
+            {applyError && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{applyError}</div>}
+            {applySuccess && <div style={{ color: '#4ade80', marginBottom: '0.5rem' }}>{applySuccess}</div>}
+            <button
+              type="submit"
+              disabled={applyLoading}
+              className="apply-btn"
+            >
+              {applyLoading ? 'Submitting...' : 'Submit Application'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )}
     </>
   );
 };
