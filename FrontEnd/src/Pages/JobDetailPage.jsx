@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { DollarSign, MapPin, Clock, Building, Users, ArrowRight } from 'lucide-react';
-
 const JobDetailPage = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState(null);
@@ -14,7 +13,6 @@ const JobDetailPage = () => {
   const [applyError, setApplyError] = useState('');
   const [applySuccess, setApplySuccess] = useState('');
   const [applied, setApplied] = useState(false);
-
   useEffect(() => {
     const fetchJob = async () => {
       setLoading(true);
