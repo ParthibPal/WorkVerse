@@ -472,7 +472,7 @@ export default function PostJobPage() {
             padding: '2rem',
             boxShadow: '0 20px 40px var(--box-shadow)'
           }}>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} onKeyDown={e => { if (e.key === 'Enter' && currentStep !== 3) { e.preventDefault(); } }}>
               {/* Error and Success Messages */}
               {error && (
                 <div style={{
